@@ -1,31 +1,8 @@
-// rubiks-cube-solver-cuber.js
+// rubiks-cube-solver.js
 const fs = require('fs');
 // You'll need to install this package first:
-// npm install cuber
-const Cube = require('cuber').default;
-
-// Define the faces and their indices
-const FACES = {
-  U: 0, // Up
-  R: 1, // Right
-  F: 2, // Front
-  D: 3, // Down
-  L: 4, // Left
-  B: 5  // Back
-};
-
-// Define color mapping
-const COLOR_TO_FACE = {
-  'white': 'U',
-  'red': 'R',
-  'green': 'F',
-  'yellow': 'D',
-  'orange': 'L',
-  'blue': 'B'
-};
-
-// Face indices to notation
-const FACE_NOTATION = ['U', 'R', 'F', 'D', 'L', 'B'];
+// npm install cubejs
+const Cube = require('cubejs');
 
 /**
  * Validate the input cube configuration
@@ -72,75 +49,53 @@ function validateCube(cubeData) {
 }
 
 /**
- * Create a Cube instance from the cube data
+ * Convert the cube data to a facelet string format required by cubejs
  * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
- * @returns {Object} - Cube instance
+ * @returns {String} - Cube string in the format required by cubejs
  */
-function createCubeFromData(cubeData) {
-  // Create a new default solved cube
-  const cube = new Cube();
+function convertToFaceletString(cubeData) {
+  // Define the standard color mapping
+  // In cubejs, the facelet string format is: U U U U U U U U U R R R R R R R R R F F F F F F F F F D D D D D D D D D L L L L L L L L L B B B B B B B B B
+  // Where U = Up (white), R = Right (red), F = Front (green), D = Down (yellow), L = Left (orange), B = Back (blue)
   
-  // Identify the colors of the center stickers
-  const centerColors = cubeData.map(face => face[4]);
+  // First, identify the colors of each center
+  const centerColors = {};
+  // Standard order of faces in cubejs: U, R, F, D, L, B
+  const facePositions = ['U', 'R', 'F', 'D', 'L', 'B'];
   
-  // Map each color to its corresponding face notation
-  const colorMap = {};
-  FACE_NOTATION.forEach((notation, index) => {
-    colorMap[centerColors[index]] = notation;
-  });
+  for (let i = 0; i < 6; i++) {
+    centerColors[cubeData[i][4]] = facePositions[i];
+  }
   
-  // Define the mapping from face indices to sticker positions
-  // Each face has 9 stickers arranged in a 3x3 grid
-  // We need to map from our 0-8 indices to the notation used by cuber
-  const stickerMap = {
-    // For each face, map from our indices [0-8] to cuber's notation
-    // Format: [our_index]: [cuber_notation]
-    0: [0, 0], // top-left
-    1: [0, 1], // top-middle
-    2: [0, 2], // top-right
-    3: [1, 0], // middle-left
-    4: [1, 1], // center
-    5: [1, 2], // middle-right
-    6: [2, 0], // bottom-left
-    7: [2, 1], // bottom-middle
-    8: [2, 2]  // bottom-right
-  };
+  // Now rebuild the facelet string in the required order
+  let faceletString = '';
   
-  // Apply the stickers to the cube
-  for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-    const face = cubeData[faceIndex];
-    const faceNotation = FACE_NOTATION[faceIndex];
-    
-    for (let stickerIndex = 0; stickerIndex < 9; stickerIndex++) {
-      const color = face[stickerIndex];
-      const [row, col] = stickerMap[stickerIndex];
-      
-      // Set the sticker color using cuber's notation
-      // This is a simplified approach and may need adjustment based on cuber's API
-      cube.setSticker(faceNotation, row, col, colorMap[color]);
+  // For each face in the input data
+  for (let i = 0; i < 6; i++) {
+    const face = cubeData[i];
+    for (let j = 0; j < 9; j++) {
+      const color = face[j];
+      faceletString += centerColors[color];
     }
   }
   
-  return cube;
+  return faceletString;
 }
 
 /**
- * Solve the cube using the Kociemba algorithm
- * @param {Object} cube - Cube instance
- * @returns {String} - Solution as a sequence of moves
+ * Orient the cube so that white is on top and green is in front
+ * @param {String} solution - The solution algorithm
+ * @param {Object} centerColors - Mapping of colors to face positions
+ * @returns {String} - Reoriented solution
  */
-function solveCube(cube) {
-  try {
-    // Use cuber's implementation of the Kociemba algorithm
-    return cube.solve();
-  } catch (error) {
-    console.error('Error solving cube:', error.message);
-    return null;
-  }
+function orientSolution(solution, centerColors) {
+  // This is a simplified version - in a real application, you would need to
+  // adjust the solution based on the actual orientation of the cube
+  return solution;
 }
 
 /**
- * Main function to solve a Rubik's cube
+ * Solve the cube using the cubejs library
  * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
  * @returns {Object} - Result with solution or error
  */
@@ -152,11 +107,17 @@ function solveRubiksCube(cubeData) {
   }
   
   try {
-    // Create a cube instance from the data
-    const cube = createCubeFromData(cubeData);
+    // Convert to facelet string
+    const faceletString = convertToFaceletString(cubeData);
+    
+    // Initialize the cubejs solver (this only needs to be done once)
+    Cube.initSolver();
+    
+    // Create a cube instance from the facelet string
+    const cube = Cube.fromString(faceletString);
     
     // Solve the cube
-    const solution = solveCube(cube);
+    const solution = cube.solve();
     
     if (solution) {
       return { solution };
@@ -168,7 +129,10 @@ function solveRubiksCube(cubeData) {
   }
 }
 
-// Function to parse command line arguments
+/**
+ * Parse command line arguments
+ * @returns {Array|null} - Cube data from command line or null
+ */
 function parseCommandLineArgs() {
   const args = process.argv.slice(2);
   if (args.length === 0) {
@@ -190,7 +154,9 @@ function parseCommandLineArgs() {
   }
 }
 
-// Main execution
+/**
+ * Main execution function
+ */
 function main() {
   // Example cube configuration (variable-based input)
   const exampleCube = [
@@ -209,6 +175,8 @@ function main() {
   const cubeData = commandLineCube || exampleCube;
   
   console.log('Solving cube...');
+  console.log('This may take a moment for initialization...');
+  
   // Solve the cube
   const result = solveRubiksCube(cubeData);
   
