@@ -1,339 +1,209 @@
-#!/usr/bin/env node
+// rubiks-cube-solver.js
+const { execSync } = require('child_process');
+const fs = require('fs');
+
+// Colors for the cube faces
+const COLORS = {
+  W: 'white',
+  Y: 'yellow',
+  G: 'green',
+  B: 'blue',
+  R: 'red',
+  O: 'orange'
+};
+
+// Map face positions to indices
+const FACE_POSITIONS = {
+  U: 0, // Up
+  R: 1, // Right
+  F: 2, // Front
+  D: 3, // Down
+  L: 4, // Left
+  B: 5  // Back
+};
 
 /**
- * Rubik's Cube Solver
- * This script takes a representation of a Rubik's cube state and returns a solution.
- * Input format: 6 faces with 9 stickers each, in the format G(g,b,w,y,g,y,o,y,r)
- * where the first letter is the center color and the 9 values in parentheses are the stickers
- * in reading order (left-to-right, top-to-bottom).
+ * Validate the input cube configuration
+ * @param {Array} cubeData - Array of 6 faces, each with 9a stickers
+ * @returns {Object} - Validation result with status and error message if any
  */
-
-const VALID_COLORS = ['G', 'O', 'B', 'R', 'W', 'Y'];
-const FACE_NAMES = ['UP', 'RIGHT', 'FRONT', 'DOWN', 'LEFT', 'BACK'];
-const EXPECTED_CENTERS = ['W', 'R', 'G', 'Y', 'O', 'B']; // Expected order: U, R, F, D, L, B
-
-// Color mapping for standard notation
-const COLOR_TO_FACE = {
-  'W': 'U', // White is UP
-  'R': 'R', // Red is RIGHT
-  'G': 'F', // Green is FRONT
-  'Y': 'D', // Yellow is DOWN
-  'O': 'L', // Orange is LEFT
-  'B': 'B'  // Blue is BACK
-};
-
-// Face mapping for standard notation
-const FACE_TO_COLOR = {
-  'U': 'W',
-  'R': 'R',
-  'F': 'G',
-  'D': 'Y',
-  'L': 'O',
-  'B': 'B'
-};
-
-class RubiksCubeSolver {
-  constructor() {
-    this.faces = [];
-    this.faceMap = {};
-    this.centerMap = {};
+function validateCube(cubeData) {
+  // Check if we have exactly 6 faces
+  if (cubeData.length !== 6) {
+    return { isValid: false, error: `Expected 6 faces, got ${cubeData.length}` };
   }
 
-  /**
-   * Parses and validates input from a string
-   * @param {string} input - String representation of cube state
-   */
-  parseInput(input) {
-    // Initialize face data
-    this.faces = Array(6).fill('');
-    this.centerMap = {};
-    
-    try {
-      // Split input by spaces or newlines to get each face definition
-      const faceDefinitions = input.trim().split(/[\s\n]+/);
-      
-      if (faceDefinitions.length !== 6) {
-        throw new Error(`Expected 6 face definitions, got ${faceDefinitions.length}`);
-      }
-      
-      // Process each face definition
-      for (let i = 0; i < faceDefinitions.length; i++) {
-        const faceDefinition = faceDefinitions[i];
-        
-        // Check if the face definition matches the expected format: X(a,b,c,d,e,f,g,h,i)
-        const match = faceDefinition.match(/^([GOBRWY])$$([GOBRWY],[GOBRWY],[GOBRWY],[GOBRWY],[GOBRWY],[GOBRWY],[GOBRWY],[GOBRWY],[GOBRWY])$$$/i);
-        
-        if (!match) {
-          throw new Error(`Invalid face definition format: ${faceDefinition}`);
-        }
-        
-        const center = match[1].toUpperCase();
-        const stickers = match[2].toUpperCase().split(',');
-        
-        // Validate center
-        if (!VALID_COLORS.includes(center)) {
-          throw new Error(`Invalid center color: ${center}`);
-        }
-        
-        // Check if this center has already been used
-        if (this.centerMap[center]) {
-          throw new Error(`Duplicate center color: ${center}`);
-        }
-        
-        this.centerMap[center] = i;
-        
-        // Validate stickers
-        if (stickers.length !== 9) {
-          throw new Error(`Expected 9 stickers, got ${stickers.length}`);
-        }
-        
-        // Ensure the center sticker matches the declared center
-        if (stickers[4] !== center) {
-          throw new Error(`Center sticker ${stickers[4]} doesn't match declared center ${center}`);
-        }
-        
-        // Store the face
-        this.faces[i] = stickers.join('');
-      }
-      
-      // Verify all centers are present
-      for (const color of VALID_COLORS) {
-        if (!this.centerMap.hasOwnProperty(color)) {
-          throw new Error(`Missing center color: ${color}`);
-        }
-      }
-      
-      // Validate the overall cube state
-      return this.validateCube();
-    } catch (error) {
-      console.error(`Error parsing input: ${error.message}`);
-      return false;
+  // Check if each face has exactly 9 stickers
+  for (let i = 0; i < cubeData.length; i++) {
+    if (cubeData[i].length !== 9) {
+      return { isValid: false, error: `Face ${i + 1} has ${cubeData[i].length} stickers instead of 9` };
     }
   }
 
-  /**
-   * Validates the cube state
-   * @returns {boolean} - Whether the cube state is valid
-   */
-  validateCube() {
-    const allStickers = this.faces.join('');
-    
-    // Validate color counts
-    const colorCounts = {};
-    for (const char of allStickers) {
-      if (!VALID_COLORS.includes(char)) {
-        console.error(`Error: Unknown color code '${char}'. Valid codes are: ${VALID_COLORS.join(', ')}`);
-        return false;
-      }
-      colorCounts[char] = (colorCounts[char] || 0) + 1;
-    }
-
-    // Each color should appear exactly 9 times
-    for (const color of VALID_COLORS) {
-      if (colorCounts[color] !== 9) {
-        console.error(`Error: Color '${color}' appears ${colorCounts[color] || 0} times, expected 9`);
-        return false;
-      }
-    }
-
-    // Map faces to standard notation based on centers
-    return this.mapFaces();
+  // Check center stickers (5th position, index 4)
+  const centers = cubeData.map(face => face[4]);
+  const uniqueCenters = new Set(centers);
+  
+  if (uniqueCenters.size !== 6) {
+    return { isValid: false, error: "Duplicate centers detected" };
   }
 
-  /**
-   * Maps faces to the standard notation based on centers
-   * @returns {boolean} - Whether the mapping was successful
-   */
-  mapFaces() {
-    // Create a mapping from the input faces to standard order (U, R, F, D, L, B)
-    this.faceMap = {};
-    
-    // Map based on the expected centers
-    // White (W) is UP
-    if (!this.centerMap.hasOwnProperty('W')) {
-      console.error('Error: No white center found');
-      return false;
+  // Count occurrences of each color
+  const colorCount = {};
+  cubeData.forEach(face => {
+    face.forEach(color => {
+      colorCount[color] = (colorCount[color] || 0) + 1;
+    });
+  });
+
+  // Check if any color appears more than 9 times
+  for (const color in colorCount) {
+    if (colorCount[color] > 9) {
+      return { isValid: false, error: `Color ${color} appears ${colorCount[color]} times, which is more than 9` };
     }
-    this.faceMap['U'] = this.centerMap['W'];
-    
-    // Green (G) is FRONT
-    if (!this.centerMap.hasOwnProperty('G')) {
-      console.error('Error: No green center found');
-      return false;
-    }
-    this.faceMap['F'] = this.centerMap['G'];
-    
-    // Yellow (Y) is DOWN
-    if (!this.centerMap.hasOwnProperty('Y')) {
-      console.error('Error: No yellow center found');
-      return false;
-    }
-    this.faceMap['D'] = this.centerMap['Y'];
-    
-    // Blue (B) is BACK
-    if (!this.centerMap.hasOwnProperty('B')) {
-      console.error('Error: No blue center found');
-      return false;
-    }
-    this.faceMap['B'] = this.centerMap['B'];
-    
-    // Red (R) is RIGHT
-    if (!this.centerMap.hasOwnProperty('R')) {
-      console.error('Error: No red center found');
-      return false;
-    }
-    this.faceMap['R'] = this.centerMap['R'];
-    
-    // Orange (O) is LEFT
-    if (!this.centerMap.hasOwnProperty('O')) {
-      console.error('Error: No orange center found');
-      return false;
-    }
-    this.faceMap['L'] = this.centerMap['O'];
-    
-    return true;
   }
 
-  /**
-   * Converts the cube state to standard notation
-   * @returns {string} - Cube state in standard notation
-   */
-  convertToStandardNotation() {
-    // Convert from color representation to face notation (URFDLB)
-    let standardNotation = '';
-    
-    // Add each face in the correct order
-    for (const face of ['U', 'R', 'F', 'D', 'L', 'B']) {
-      const faceIndex = this.faceMap[face];
-      const faceColors = this.faces[faceIndex];
-      
-      // Convert each color to its face notation
-      for (const color of faceColors) {
-        standardNotation += COLOR_TO_FACE[color];
-      }
-    }
-    
-    return standardNotation;
-  }
+  return { isValid: true };
+}
 
-  /**
-   * Solves the cube using a beginner's method
-   * @returns {string} - Solution sequence
-   */
-  solve() {
-    const standardNotation = this.convertToStandardNotation();
-    console.log(`Generating solution for cube with standard notation: ${standardNotation}`);
-    
-    // Check if the cube is already solved
-    if (this.isSolved()) {
-      return "Cube is already solved!";
-    }
-    
-    // For demonstration purposes, we'll return a simplified solution
-    // In a real implementation, you would implement a full solving algorithm
-    return this.generateSolution();
+/**
+ * Convert the cube data to the format required by the Kociemba algorithm
+ * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
+ * @returns {String} - Cube string in the format required by the Kociemba algorithm
+ */
+function convertToKociembaFormat(cubeData) {
+  // Map colors to their positions based on centers
+  const colorToFace = {};
+  const centerPositions = ['U', 'R', 'F', 'D', 'L', 'B'];
+  
+  for (let i = 0; i < 6; i++) {
+    colorToFace[cubeData[i][4]] = centerPositions[i];
   }
+  
+  // Reorder the faces to match the expected order: U, R, F, D, L, B
+  const reorderedCube = [];
+  centerPositions.forEach(pos => {
+    const faceColor = Object.keys(colorToFace).find(key => colorToFace[key] === pos);
+    const faceIndex = cubeData.findIndex(face => face[4] === faceColor);
+    reorderedCube.push([...cubeData[faceIndex]]);
+  });
+  
+  // Convert to string format used by Kociemba: UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
+  let cubeString = '';
+  reorderedCube.forEach(face => {
+    face.forEach(color => {
+      cubeString += colorToFace[color];
+    });
+  });
+  
+  return cubeString;
+}
 
-  /**
-   * Checks if the cube is already solved
-   * @returns {boolean} - Whether the cube is solved
-   */
-  isSolved() {
-    // A solved cube has each face with all stickers of the same color
-    for (const face of this.faces) {
-      const firstColor = face[0];
-      for (let i = 1; i < 9; i++) {
-        if (face[i] !== firstColor) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Generates a solution for the cube
-   * @returns {string} - Solution sequence
-   */
-  generateSolution() {
-    // This is a simplified solution for demonstration purposes
-    // In a real implementation, you would implement a full solving algorithm
+/**
+ * Solve the cube using the Kociemba algorithm
+ * @param {String} cubeString - Cube string in the format required by the Kociemba algorithm
+ * @returns {String} - Solution as a sequence of moves
+ */
+function solveCube(cubeString) {
+  try {
+    // Create a temporary file to store the cube state
+    fs.writeFileSync('cube_state.txt', cubeString);
     
-    // For now, we'll return a common algorithm that performs a T-permutation
-    // followed by a Y-permutation, which is a sequence that's often used in speedcubing
-    return "R U R' U' R' F R2 U' R' U' R U R' F' F R U' R' U' R U R' F' R U R' U' R' F R F'";
-  }
-
-  /**
-   * Pretty-prints the cube state
-   */
-  printCube() {
-    console.log("Cube State:");
+    // Use the npm package 'rubiks-cube-solver' to solve the cube
+    // This is a placeholder - you would need to install the package first
+    // npm install rubiks-cube-solver
+    const result = execSync('npx cube-solver cube_state.txt').toString().trim();
     
-    const facesInOrder = ['U', 'R', 'F', 'D', 'L', 'B'].map(f => this.faces[this.faceMap[f]]);
+    // Clean up
+    fs.unlinkSync('cube_state.txt');
     
-    // Print the UP face
-    console.log("UP (White):");
-    for (let i = 0; i < 3; i++) {
-      console.log("  " + facesInOrder[0].substring(i*3, (i+1)*3).split('').join(' '));
-    }
-    
-    // Print the middle faces (LEFT, FRONT, RIGHT, BACK) side by side
-    console.log("LEFT (Orange), FRONT (Green), RIGHT (Red), BACK (Blue):");
-    for (let i = 0; i < 3; i++) {
-      console.log(
-        "  " + facesInOrder[4].substring(i*3, (i+1)*3).split('').join(' ') + 
-        "   " + facesInOrder[2].substring(i*3, (i+1)*3).split('').join(' ') + 
-        "   " + facesInOrder[1].substring(i*3, (i+1)*3).split('').join(' ') + 
-        "   " + facesInOrder[5].substring(i*3, (i+1)*3).split('').join(' ')
-      );
-    }
-    
-    // Print the DOWN face
-    console.log("DOWN (Yellow):");
-    for (let i = 0; i < 3; i++) {
-      console.log("  " + facesInOrder[3].substring(i*3, (i+1)*3).split('').join(' '));
-    }
+    return result;
+  } catch (error) {
+    console.error('Error solving cube:', error.message);
+    return null;
   }
 }
 
 /**
- * Main function that runs the solver
+ * Main function to solve a Rubik's cube
+ * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
+ * @returns {Object} - Result with solution or error
  */
-function main() {
-  const solver = new RubiksCubeSolver();
-  let input;
-
-  // Check if input is provided as a command line argument
-  if (process.argv.length > 2) {
-    // Get input from command line arguments (everything after the script name)
-    input = process.argv.slice(2).join(' ');
+function solveRubiksCube(cubeData) {
+  // Validate the cube
+  const validation = validateCube(cubeData);
+  if (!validation.isValid) {
+    return { error: validation.error };
+  }
+  
+  // Convert to Kociemba format
+  const cubeString = convertToKociembaFormat(cubeData);
+  
+  // Solve the cube
+  const solution = solveCube(cubeString);
+  
+  if (solution) {
+    return { solution };
   } else {
-    // Prompt for input
-    console.log("Please provide the cube state in the format: G(g,b,w,y,g,y,o,y,r) W(g,r,w,o,w,r,w,o,y) ...");
-    console.log("No input provided. Exiting.");
-    process.exit(1);
-  }
-
-  // Parse and validate the input
-  if (solver.parseInput(input)) {
-    // Print the cube state for verification
-    solver.printCube();
-    
-    // Solve the cube
-    const solution = solver.solve();
-    
-    console.log("\nSolution:");
-    console.log(solution);
-    
-    // Count the number of moves
-    const moveCount = solution.split(' ').length;
-    console.log(`\nNumber of moves: ${moveCount}`);
+    return { error: "Failed to solve the cube" };
   }
 }
 
-// Run the main function
-main();
+// Function to parse command line arguments
+function parseCommandLineArgs() {
+  const args = process.argv.slice(2);
+  if (args.length === 0) {
+    return null;
+  }
+  
+  try {
+    // Check if argument is a file path
+    if (args.length === 1 && fs.existsSync(args[0])) {
+      const data = fs.readFileSync(args[0], 'utf8');
+      return JSON.parse(data);
+    }
+    
+    // Otherwise, treat as a JSON string
+    return JSON.parse(args.join(' '));
+  } catch (error) {
+    console.error('Error parsing command line arguments:', error.message);
+    return null;
+  }
+}
 
-// Example usage:
-// node cubesolver.js "G(G,G,G,G,G,G,G,G,G) W(W,W,W,W,W,W,W,W,W) R(R,R,R,R,R,R,R,R,R) Y(Y,Y,Y,Y,Y,Y,Y,Y,Y) O(O,O,O,O,O,O,O,O,O) B(B,B,B,B,B,B,B,B,B)"
+// Main execution
+function main() {
+  // Example cube configuration (variable-based input)
+  const exampleCube = [
+    ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'], // Up (white)
+    ['R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'], // Right (red)
+    ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'], // Front (green)
+    ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y'], // Down (yellow)
+    ['O', 'O', 'O', 'O', 'O', 'O', 'O', 'O', 'O'], // Left (orange)
+    ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']  // Back (blue)
+  ];
+  
+  // Try to get cube data from command line
+  const commandLineCube = parseCommandLineArgs();
+  
+  // Use command line input if available, otherwise use the example
+  const cubeData = commandLineCube || exampleCube;
+  
+  // Solve the cube
+  const result = solveRubiksCube(cubeData);
+  
+  // Output the result
+  if (result.error) {
+    console.error('Error:', result.error);
+  } else {
+    console.log('Solution:', result.solution);
+  }
+}
+
+// Execute the main function if this script is run directly
+if (require.main === module) {
+  main();
+} else {
+  // Export the function if this script is required as a module
+  module.exports = { solveRubiksCube };
+}
