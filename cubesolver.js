@@ -1,8 +1,21 @@
-// rubiks-cube-solver.js
+// enhanced-cube-solver.js
 const fs = require('fs');
 // You'll need to install this package first:
 // npm install cubejs
 const Cube = require('cubejs');
+
+// Define the standard faces and their positions
+const FACES = ['U', 'R', 'F', 'D', 'L', 'B']; // Up, Right, Front, Down, Left, Back
+
+// Standard color scheme: White, Red, Green, Yellow, Orange, Blue
+const STANDARD_COLORS = {
+  'W': 'U', // White on Up
+  'R': 'R', // Red on Right
+  'G': 'F', // Green on Front
+  'Y': 'D', // Yellow on Down
+  'O': 'L', // Orange on Left
+  'B': 'B'  // Blue on Back
+};
 
 /**
  * Validate the input cube configuration
@@ -49,49 +62,44 @@ function validateCube(cubeData) {
 }
 
 /**
+ * Get the color mapping based on center stickers
+ * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
+ * @returns {Object} - Mapping from colors to face notations
+ */
+function getColorMapping(cubeData) {
+  const centerColors = {};
+  
+  // Map the center stickers to their respective faces
+  for (let i = 0; i < 6; i++) {
+    centerColors[cubeData[i][4]] = FACES[i];
+  }
+  
+  return centerColors;
+}
+
+/**
  * Convert the cube data to a facelet string format required by cubejs
  * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
  * @returns {String} - Cube string in the format required by cubejs
  */
 function convertToFaceletString(cubeData) {
-  // Define the standard color mapping
-  // In cubejs, the facelet string format is: U U U U U U U U U R R R R R R R R R F F F F F F F F F D D D D D D D D D L L L L L L L L L B B B B B B B B B
-  // Where U = Up (white), R = Right (red), F = Front (green), D = Down (yellow), L = Left (orange), B = Back (blue)
+  // Get color mapping based on center stickers
+  const colorMapping = getColorMapping(cubeData);
+  console.log('Color mapping:', colorMapping);
   
-  // First, identify the colors of each center
-  const centerColors = {};
-  // Standard order of faces in cubejs: U, R, F, D, L, B
-  const facePositions = ['U', 'R', 'F', 'D', 'L', 'B'];
-  
-  for (let i = 0; i < 6; i++) {
-    centerColors[cubeData[i][4]] = facePositions[i];
-  }
-  
-  // Now rebuild the facelet string in the required order
+  // Create the facelet string in the required order: U, R, F, D, L, B
   let faceletString = '';
   
-  // For each face in the input data
-  for (let i = 0; i < 6; i++) {
-    const face = cubeData[i];
-    for (let j = 0; j < 9; j++) {
-      const color = face[j];
-      faceletString += centerColors[color];
+  // Add each face in the standard order
+  for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+    const face = cubeData[faceIndex];
+    for (let i = 0; i < 9; i++) {
+      const color = face[i];
+      faceletString += colorMapping[color];
     }
   }
   
   return faceletString;
-}
-
-/**
- * Orient the cube so that white is on top and green is in front
- * @param {String} solution - The solution algorithm
- * @param {Object} centerColors - Mapping of colors to face positions
- * @returns {String} - Reoriented solution
- */
-function orientSolution(solution, centerColors) {
-  // This is a simplified version - in a real application, you would need to
-  // adjust the solution based on the actual orientation of the cube
-  return solution;
 }
 
 /**
@@ -109,18 +117,25 @@ function solveRubiksCube(cubeData) {
   try {
     // Convert to facelet string
     const faceletString = convertToFaceletString(cubeData);
+    console.log('Facelet string:', faceletString);
     
     // Initialize the cubejs solver (this only needs to be done once)
+    console.log('Initializing solver...');
     Cube.initSolver();
     
     // Create a cube instance from the facelet string
+    console.log('Creating cube from facelet string...');
     const cube = Cube.fromString(faceletString);
     
     // Solve the cube
+    console.log('Solving cube...');
     const solution = cube.solve();
     
     if (solution) {
-      return { solution };
+      return { 
+        solution,
+        faceletString
+      };
     } else {
       return { error: "Failed to solve the cube" };
     }
@@ -159,6 +174,7 @@ function parseCommandLineArgs() {
  */
 function main() {
   // Example cube configuration (variable-based input)
+  // This represents a solved cube with standard color scheme
   const exampleCube = [
     ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'W'], // Up (white)
     ['R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'], // Right (red)
@@ -168,14 +184,23 @@ function main() {
     ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']  // Back (blue)
   ];
   
+  // Example of a scrambled cube
+  const scrambledExample = [
+    ['W', 'R', 'W', 'B', 'W', 'G', 'Y', 'R', 'O'], // Up
+    ['R', 'Y', 'B', 'O', 'R', 'W', 'G', 'O', 'Y'], // Right
+    ['G', 'B', 'Y', 'R', 'G', 'W', 'O', 'B', 'R'], // Front
+    ['Y', 'G', 'O', 'Y', 'Y', 'B', 'W', 'G', 'W'], // Down
+    ['O', 'W', 'R', 'G', 'O', 'Y', 'B', 'Y', 'G'], // Left
+    ['B', 'O', 'G', 'W', 'B', 'R', 'R', 'B', 'O']  // Back
+  ];
+  
   // Try to get cube data from command line
   const commandLineCube = parseCommandLineArgs();
   
   // Use command line input if available, otherwise use the example
   const cubeData = commandLineCube || exampleCube;
   
-  console.log('Solving cube...');
-  console.log('This may take a moment for initialization...');
+  console.log('Starting Rubik\'s Cube Solver...');
   
   // Solve the cube
   const result = solveRubiksCube(cubeData);
@@ -185,6 +210,24 @@ function main() {
     console.error('Error:', result.error);
   } else {
     console.log('Solution:', result.solution);
+    console.log('Solution length:', result.solution.split(' ').length, 'moves');
+  }
+}
+
+// Create a helper function to apply an algorithm to a cube and get the resulting state
+function applyAlgorithm(cube, algorithm) {
+  try {
+    const newCube = new Cube(cube);
+    newCube.move(algorithm);
+    return {
+      success: true,
+      resultCube: newCube
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
@@ -192,6 +235,11 @@ function main() {
 if (require.main === module) {
   main();
 } else {
-  // Export the function if this script is required as a module
-  module.exports = { solveRubiksCube };
+  // Export functions if this script is required as a module
+  module.exports = { 
+    solveRubiksCube,
+    validateCube,
+    applyAlgorithm,
+    Cube
+  };
 }
