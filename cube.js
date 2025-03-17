@@ -1,7 +1,6 @@
-const cube = require("cubejs")
+const Cube = require('cubejs');
 
-const cube = new Cube.random()
+// Create a new random cube state
+const randomCube = Cube.random();
 
-const string = cube.asString();
-
-console.log(string)
+console.log(randomCube.toJSON());  // Log the cube state to see the random state
