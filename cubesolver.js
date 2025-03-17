@@ -1,19 +1,11 @@
-// rubiks-cube-solver.js
-const { execSync } = require('child_process');
+// rubiks-cube-solver-cuber.js
 const fs = require('fs');
+// You'll need to install this package first:
+// npm install cuber
+const Cube = require('cuber').default;
 
-// Colors for the cube faces
-const COLORS = {
-  W: 'white',
-  Y: 'yellow',
-  G: 'green',
-  B: 'blue',
-  R: 'red',
-  O: 'orange'
-};
-
-// Map face positions to indices
-const FACE_POSITIONS = {
+// Define the faces and their indices
+const FACES = {
   U: 0, // Up
   R: 1, // Right
   F: 2, // Front
@@ -22,9 +14,22 @@ const FACE_POSITIONS = {
   B: 5  // Back
 };
 
+// Define color mapping
+const COLOR_TO_FACE = {
+  'white': 'U',
+  'red': 'R',
+  'green': 'F',
+  'yellow': 'D',
+  'orange': 'L',
+  'blue': 'B'
+};
+
+// Face indices to notation
+const FACE_NOTATION = ['U', 'R', 'F', 'D', 'L', 'B'];
+
 /**
  * Validate the input cube configuration
- * @param {Array} cubeData - Array of 6 faces, each with 9a stickers
+ * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
  * @returns {Object} - Validation result with status and error message if any
  */
 function validateCube(cubeData) {
@@ -36,7 +41,7 @@ function validateCube(cubeData) {
   // Check if each face has exactly 9 stickers
   for (let i = 0; i < cubeData.length; i++) {
     if (cubeData[i].length !== 9) {
-      return { isValid: false, error: `Face ${i + 1} has ${cubeData[i].length} stickers instead of 9` };
+      return { isValid: false, error: `Face ${i+1} has ${cubeData[i].length} stickers instead of 9` };
     }
   }
 
@@ -67,57 +72,67 @@ function validateCube(cubeData) {
 }
 
 /**
- * Convert the cube data to the format required by the Kociemba algorithm
+ * Create a Cube instance from the cube data
  * @param {Array} cubeData - Array of 6 faces, each with 9 stickers
- * @returns {String} - Cube string in the format required by the Kociemba algorithm
+ * @returns {Object} - Cube instance
  */
-function convertToKociembaFormat(cubeData) {
-  // Map colors to their positions based on centers
-  const colorToFace = {};
-  const centerPositions = ['U', 'R', 'F', 'D', 'L', 'B'];
+function createCubeFromData(cubeData) {
+  // Create a new default solved cube
+  const cube = new Cube();
   
-  for (let i = 0; i < 6; i++) {
-    colorToFace[cubeData[i][4]] = centerPositions[i];
+  // Identify the colors of the center stickers
+  const centerColors = cubeData.map(face => face[4]);
+  
+  // Map each color to its corresponding face notation
+  const colorMap = {};
+  FACE_NOTATION.forEach((notation, index) => {
+    colorMap[centerColors[index]] = notation;
+  });
+  
+  // Define the mapping from face indices to sticker positions
+  // Each face has 9 stickers arranged in a 3x3 grid
+  // We need to map from our 0-8 indices to the notation used by cuber
+  const stickerMap = {
+    // For each face, map from our indices [0-8] to cuber's notation
+    // Format: [our_index]: [cuber_notation]
+    0: [0, 0], // top-left
+    1: [0, 1], // top-middle
+    2: [0, 2], // top-right
+    3: [1, 0], // middle-left
+    4: [1, 1], // center
+    5: [1, 2], // middle-right
+    6: [2, 0], // bottom-left
+    7: [2, 1], // bottom-middle
+    8: [2, 2]  // bottom-right
+  };
+  
+  // Apply the stickers to the cube
+  for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+    const face = cubeData[faceIndex];
+    const faceNotation = FACE_NOTATION[faceIndex];
+    
+    for (let stickerIndex = 0; stickerIndex < 9; stickerIndex++) {
+      const color = face[stickerIndex];
+      const [row, col] = stickerMap[stickerIndex];
+      
+      // Set the sticker color using cuber's notation
+      // This is a simplified approach and may need adjustment based on cuber's API
+      cube.setSticker(faceNotation, row, col, colorMap[color]);
+    }
   }
   
-  // Reorder the faces to match the expected order: U, R, F, D, L, B
-  const reorderedCube = [];
-  centerPositions.forEach(pos => {
-    const faceColor = Object.keys(colorToFace).find(key => colorToFace[key] === pos);
-    const faceIndex = cubeData.findIndex(face => face[4] === faceColor);
-    reorderedCube.push([...cubeData[faceIndex]]);
-  });
-  
-  // Convert to string format used by Kociemba: UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB
-  let cubeString = '';
-  reorderedCube.forEach(face => {
-    face.forEach(color => {
-      cubeString += colorToFace[color];
-    });
-  });
-  
-  return cubeString;
+  return cube;
 }
 
 /**
  * Solve the cube using the Kociemba algorithm
- * @param {String} cubeString - Cube string in the format required by the Kociemba algorithm
+ * @param {Object} cube - Cube instance
  * @returns {String} - Solution as a sequence of moves
  */
-function solveCube(cubeString) {
+function solveCube(cube) {
   try {
-    // Create a temporary file to store the cube state
-    fs.writeFileSync('cube_state.txt', cubeString);
-    
-    // Use the npm package 'rubiks-cube-solver' to solve the cube
-    // This is a placeholder - you would need to install the package first
-    // npm install rubiks-cube-solver
-    const result = execSync('npx cube-solver cube_state.txt').toString().trim();
-    
-    // Clean up
-    fs.unlinkSync('cube_state.txt');
-    
-    return result;
+    // Use cuber's implementation of the Kociemba algorithm
+    return cube.solve();
   } catch (error) {
     console.error('Error solving cube:', error.message);
     return null;
@@ -136,16 +151,20 @@ function solveRubiksCube(cubeData) {
     return { error: validation.error };
   }
   
-  // Convert to Kociemba format
-  const cubeString = convertToKociembaFormat(cubeData);
-  
-  // Solve the cube
-  const solution = solveCube(cubeString);
-  
-  if (solution) {
-    return { solution };
-  } else {
-    return { error: "Failed to solve the cube" };
+  try {
+    // Create a cube instance from the data
+    const cube = createCubeFromData(cubeData);
+    
+    // Solve the cube
+    const solution = solveCube(cube);
+    
+    if (solution) {
+      return { solution };
+    } else {
+      return { error: "Failed to solve the cube" };
+    }
+  } catch (error) {
+    return { error: `Unexpected error: ${error.message}` };
   }
 }
 
@@ -189,6 +208,7 @@ function main() {
   // Use command line input if available, otherwise use the example
   const cubeData = commandLineCube || exampleCube;
   
+  console.log('Solving cube...');
   // Solve the cube
   const result = solveRubiksCube(cubeData);
   
