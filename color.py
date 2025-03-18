@@ -83,17 +83,140 @@ def rotate_image(image, angle):
 
 def find_correct_orientation(image):
     """Find the correct orientation by trying all 4 possible rotations"""
+    best_rotation = None
+    best_angle = 0
+    best_quadrant_score = -1
+    
+    # Try all 4 possible rotations
     for angle in [0, 90, 180, 270]:
         rotated = rotate_image(image, angle)
         center_square = extract_center_square(rotated)
         dots, _ = detect_dots(center_square)
-        is_correct, _ = check_orientation(dots, center_square.shape)
         
-        if is_correct and len(dots) == 3:  # We found the correct orientation with 3 dots
-            return rotated, angle
+        # Skip if we don't have enough dots
+        if len(dots) < 3:
+            continue
+            
+        is_correct, quadrants = check_orientation(dots, center_square.shape)
+        
+        # Calculate a score based on dot distribution
+        # Ideally: 1+ dots in top-left, 1+ dots in top-right, 1+ dots in bottom-left, 0 dots in bottom-right
+        quadrant_score = 0
+        if len(quadrants["top_left"]) > 0: quadrant_score += 1
+        if len(quadrants["top_right"]) > 0: quadrant_score += 1
+        if len(quadrants["bottom_left"]) > 0: quadrant_score += 1
+        if len(quadrants["bottom_right"]) == 0: quadrant_score += 3  # Higher weight for empty bottom-right
+        
+        print(f"Angle {angle}°: {len(dots)} dots, correct: {is_correct}, score: {quadrant_score}")
+        print(f"  Quadrants: TL:{len(quadrants['top_left'])}, TR:{len(quadrants['top_right'])}, BL:{len(quadrants['bottom_left'])}, BR:{len(quadrants['bottom_right'])}")
+        
+        # If this rotation is better than what we've seen so far, remember it
+        if quadrant_score > best_quadrant_score:
+            best_quadrant_score = quadrant_score
+            best_rotation = rotated
+            best_angle = angle
     
-    # If we couldn't find a correct orientation, return the original
-    return image, 0
+    # If we couldn't find a good orientation, return the original
+    if best_rotation is None:
+        return image, 0
+    
+    return best_rotation, best_angle
+
+def detect_grid(image):
+    """
+    Detect the Rubik's cube grid and extract the 9 cells
+    Returns list of cell images
+    """
+    # Get image dimensions
+    height, width = image.shape[:2]
+    
+    # Create a simple 3x3 grid based on image dimensions
+    cells = []
+    cell_width = width // 3
+    cell_height = height // 3
+    
+    for i in range(3):
+        for j in range(3):
+            # Calculate cell coordinates
+            x1 = j * cell_width
+            y1 = i * cell_height
+            x2 = (j + 1) * cell_width
+            y2 = (i + 1) * cell_height
+            
+            # Extract cell image
+            cell_img = image[y1:y2, x1:x2]
+            cells.append(cell_img)
+    
+    return cells
+
+def identify_colors(cells):
+    """
+    Identify the color of each cell
+    Returns a list of color labels
+    """
+    # Color reference values (BGR format)
+    color_references = {
+        'W': (200, 200, 200),  # White
+        'Y': (0, 230, 230),    # Yellow
+        'G': (0, 180, 0),      # Green
+        'B': (200, 0, 0),      # Blue (appears red in BGR)
+        'R': (0, 0, 200),      # Red (appears blue in BGR)
+        'O': (0, 140, 240)     # Orange
+    }
+    
+    results = []
+    
+    for cell in cells:
+        # Resize for consistent processing
+        cell = cv2.resize(cell, (50, 50))
+        
+        # Get the central region of the cell to avoid edges
+        center_region = cell[15:35, 15:35]
+        
+        # Calculate the average color
+        avg_color = np.mean(center_region, axis=(0, 1))
+        
+        # Find the closest reference color
+        min_dist = float('inf')
+        color_label = None
+        
+        for label, ref_color in color_references.items():
+            # Calculate Euclidean distance in color space
+            dist = np.sqrt(sum((avg_color - ref_color)**2))
+            if dist < min_dist:
+                min_dist = dist
+                color_label = label
+        
+        results.append(color_label)
+    
+    return results
+
+def visualize_results(image, colors):
+    """
+    Create a visualization of the detected colors
+    """
+    # Create a copy of the original image
+    result = image.copy()
+    
+    # Calculate cell size
+    h, w = image.shape[:2]
+    cell_size_h = h // 3
+    cell_size_w = w // 3
+    
+    # Draw grid
+    for i in range(1, 3):
+        cv2.line(result, (0, i*cell_size_h), (w, i*cell_size_h), (0, 0, 0), 2)
+        cv2.line(result, (i*cell_size_w, 0), (i*cell_size_w, h), (0, 0, 0), 2)
+    
+    # Draw detected colors
+    for i in range(3):
+        for j in range(3):
+            idx = i * 3 + j
+            x, y = j * cell_size_w, i * cell_size_h
+            cv2.putText(result, colors[idx], (x + cell_size_w//2 - 10, y + cell_size_h//2 + 10),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    
+    return result
 
 def main():
     # Ask user for image path
@@ -114,6 +237,8 @@ def main():
         print(f"Error: Could not read image from '{image_path}'. Make sure it's a valid image file.")
         return
     
+    print(f"Successfully loaded image: {image_path}")
+    
     # Extract center square
     center_square = extract_center_square(image)
     
@@ -125,34 +250,63 @@ def main():
     is_correct, quadrants = check_orientation(dots, center_square.shape)
     print(f"Is orientation correct? {is_correct}")
     
-    # If orientation is not correct, find the correct orientation
-    if not is_correct or len(dots) != 3:
-        corrected_image, angle = find_correct_orientation(image)
+    # Print quadrant information
+    for quadrant, points in quadrants.items():
+        print(f"{quadrant}: {len(points)} dots")
+    
+    # Find the correct orientation
+    print("Finding correct orientation...")
+    corrected_image, angle = find_correct_orientation(image)
+    
+    if angle != 0:
         print(f"Image needed to be rotated by {angle} degrees")
         center_square = extract_center_square(corrected_image)
         dots, thresh = detect_dots(center_square)
         is_correct, quadrants = check_orientation(dots, center_square.shape)
+        
         print(f"After rotation: Detected {len(dots)} dots, orientation correct? {is_correct}")
+        
+        # Print updated quadrant information
+        for quadrant, points in quadrants.items():
+            print(f"{quadrant} (after rotation): {len(points)} dots")
         
         # Save the corrected image
         output_path = "corrected_" + os.path.basename(image_path)
         cv2.imwrite(output_path, corrected_image)
         print(f"Corrected image saved as '{output_path}'")
         
-        # Display the corrected image
-        plt.figure(figsize=(10, 10))
-        plt.subplot(121)
-        plt.title("Original Image")
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.subplot(122)
-        plt.title(f"Corrected Image (rotated {angle}°)")
-        plt.imshow(cv2.cvtColor(corrected_image, cv2.COLOR_BGR2RGB))
+        # Use the corrected image for further processing
+        image = corrected_image
     else:
         print("Image is already in the correct orientation")
-        # Display the original image
-        plt.figure(figsize=(10, 5))
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.title("Image (already in correct orientation)")
+    
+    # Detect grid and extract cells
+    print("Detecting cube grid...")
+    cells = detect_grid(image)
+    
+    # Check if we found 9 cells
+    if len(cells) != 9:
+        print(f"Error: Found {len(cells)} cells instead of 9. Please provide a clearer image.")
+        return
+    
+    # Identify colors
+    print("Identifying colors...")
+    colors = identify_colors(cells)
+    
+    # Create facelet string
+    facelet_string = ''.join(colors)
+    print(f"Detected colors: {colors}")
+    print(f"Facelet string for Kociemba's algorithm: {facelet_string}")
+    
+    # Create visualization
+    print("Creating visualization...")
+    result = visualize_results(image, colors)
+    vis_output_path = "detected_colors_" + os.path.basename(image_path)
+    cv2.imwrite(vis_output_path, result)
+    print(f"Visualization saved to {vis_output_path}")
+    
+    # Display visualizations (non-blocking)
+    plt.ion()  # Turn on interactive mode so plt.show() doesn't block
     
     # Visualize the center square with dots
     center_vis = center_square.copy()
@@ -167,14 +321,18 @@ def main():
     plt.title("Thresholded Image for Dot Detection")
     plt.imshow(thresh, cmap='gray')
     
-    print("\nIMPORTANT: Please close all image windows to continue execution.")
-    plt.show()  # This will block until all windows are closed
+    # Display the color detection results
+    plt.figure(figsize=(10, 5))
+    plt.title("Detected Colors")
+    plt.imshow(cv2.cvtColor(result, cv2.COLOR_BGR2RGB))
     
-    # Print quadrant information
-    for quadrant, points in quadrants.items():
-        print(f"{quadrant}: {len(points)} dots")
+    plt.draw()
+    plt.pause(0.001)  # Small pause to update the figures
     
     print("\nScript completed successfully!")
+    
+    # Keep the script running until user presses Enter
+    input("\nPress Enter to exit...")
 
 if __name__ == "__main__":
     main()
