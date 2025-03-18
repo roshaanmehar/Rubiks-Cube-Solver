@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 def extract_center_square(image):
     """Extract the center square from a 3x3 grid"""
@@ -94,67 +95,80 @@ def find_correct_orientation(image):
     # If we couldn't find a correct orientation, return the original
     return image, 0
 
-# Load the image
-image = cv2.imread('WhatsApp Image 2025-03-18 at 6.14.05 PM.jpeg')
-if image is None:
-    # Try using the URL if local file doesn't work
-    url = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202025-03-18%20at%206.14.05%20PM-REnyFk7ZfOqVB1QzwDGA7yeQORysYT.jpeg'
-    import urllib.request
-    resp = urllib.request.urlopen(url)
-    image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-
-# Extract center square
-center_square = extract_center_square(image)
-
-# Detect dots in the center square
-dots, thresh = detect_dots(center_square)
-print(f"Detected {len(dots)} dots in the center square")
-
-# Check if the orientation is correct
-is_correct, quadrants = check_orientation(dots, center_square.shape)
-print(f"Is orientation correct? {is_correct}")
-
-# If orientation is not correct, find the correct orientation
-if not is_correct or len(dots) != 3:
-    corrected_image, angle = find_correct_orientation(image)
-    print(f"Image needed to be rotated by {angle} degrees")
-    center_square = extract_center_square(corrected_image)
-    dots, thresh = detect_dots(center_square)
-    is_correct, quadrants = check_orientation(dots, center_square.shape)
-    print(f"After rotation: Detected {len(dots)} dots, orientation correct? {is_correct}")
+def main():
+    # Ask user for image path
+    image_path = "image.jpeg"
     
-    # Display the corrected image
-    plt.figure(figsize=(10, 10))
-    plt.subplot(121)
-    plt.title("Original Image")
-    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    plt.subplot(122)
-    plt.title(f"Corrected Image (rotated {angle}°)")
-    plt.imshow(cv2.cvtColor(corrected_image, cv2.COLOR_BGR2RGB))
-else:
-    print("Image is already in the correct orientation")
-    # Display the original image
+    # Check if file exists
+    if not os.path.exists(image_path):
+        print(f"Error: File '{image_path}' does not exist.")
+        return
+    
+    # Load the image
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Error: Could not read image from '{image_path}'. Make sure it's a valid image file.")
+        return
+    
+    # Extract center square
+    center_square = extract_center_square(image)
+    
+    # Detect dots in the center square
+    dots, thresh = detect_dots(center_square)
+    print(f"Detected {len(dots)} dots in the center square")
+    
+    # Check if the orientation is correct
+    is_correct, quadrants = check_orientation(dots, center_square.shape)
+    print(f"Is orientation correct? {is_correct}")
+    
+    # If orientation is not correct, find the correct orientation
+    if not is_correct or len(dots) != 3:
+        corrected_image, angle = find_correct_orientation(image)
+        print(f"Image needed to be rotated by {angle} degrees")
+        center_square = extract_center_square(corrected_image)
+        dots, thresh = detect_dots(center_square)
+        is_correct, quadrants = check_orientation(dots, center_square.shape)
+        print(f"After rotation: Detected {len(dots)} dots, orientation correct? {is_correct}")
+        
+        # Display the corrected image
+        plt.figure(figsize=(10, 10))
+        plt.subplot(121)
+        plt.title("Original Image")
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        plt.subplot(122)
+        plt.title(f"Corrected Image (rotated {angle}°)")
+        plt.imshow(cv2.cvtColor(corrected_image, cv2.COLOR_BGR2RGB))
+        
+        # Save the corrected image
+        output_path = "corrected_" + os.path.basename(image_path)
+        cv2.imwrite(output_path, corrected_image)
+        print(f"Corrected image saved as '{output_path}'")
+    else:
+        print("Image is already in the correct orientation")
+        # Display the original image
+        plt.figure(figsize=(10, 5))
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        plt.title("Image (already in correct orientation)")
+    
+    # Visualize the center square with dots
+    center_vis = center_square.copy()
+    for x, y in dots:
+        cv2.circle(center_vis, (x, y), 5, (0, 0, 255), -1)
+    
     plt.figure(figsize=(10, 5))
-    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    plt.title("Image (already in correct orientation)")
+    plt.subplot(121)
+    plt.title(f"Center Square with {len(dots)} Dots")
+    plt.imshow(cv2.cvtColor(center_vis, cv2.COLOR_BGR2RGB))
+    plt.subplot(122)
+    plt.title("Thresholded Image for Dot Detection")
+    plt.imshow(thresh, cmap='gray')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Print quadrant information
+    for quadrant, points in quadrants.items():
+        print(f"{quadrant}: {len(points)} dots")
 
-# Visualize the center square with dots
-center_vis = center_square.copy()
-for x, y in dots:
-    cv2.circle(center_vis, (x, y), 5, (0, 0, 255), -1)
-
-plt.figure(figsize=(10, 5))
-plt.subplot(121)
-plt.title(f"Center Square with {len(dots)} Dots")
-plt.imshow(cv2.cvtColor(center_vis, cv2.COLOR_BGR2RGB))
-plt.subplot(122)
-plt.title("Thresholded Image for Dot Detection")
-plt.imshow(thresh, cmap='gray')
-
-plt.tight_layout()
-plt.show()
-
-# Print quadrant information
-for quadrant, points in quadrants.items():
-    print(f"{quadrant}: {len(points)} dots")
+if __name__ == "__main__":
+    main()
