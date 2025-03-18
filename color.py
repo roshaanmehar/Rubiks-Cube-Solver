@@ -97,7 +97,11 @@ def find_correct_orientation(image):
 
 def main():
     # Ask user for image path
-    image_path = "image.jpeg"
+    image_path = input("Enter the path to your Rubik's cube image (or press Enter to use 'image.jpeg'): ")
+    
+    # Use default if no input
+    if not image_path:
+        image_path = "image.jpeg"
     
     # Check if file exists
     if not os.path.exists(image_path):
@@ -130,6 +134,11 @@ def main():
         is_correct, quadrants = check_orientation(dots, center_square.shape)
         print(f"After rotation: Detected {len(dots)} dots, orientation correct? {is_correct}")
         
+        # Save the corrected image
+        output_path = "corrected_" + os.path.basename(image_path)
+        cv2.imwrite(output_path, corrected_image)
+        print(f"Corrected image saved as '{output_path}'")
+        
         # Display the corrected image
         plt.figure(figsize=(10, 10))
         plt.subplot(121)
@@ -138,11 +147,6 @@ def main():
         plt.subplot(122)
         plt.title(f"Corrected Image (rotated {angle}°)")
         plt.imshow(cv2.cvtColor(corrected_image, cv2.COLOR_BGR2RGB))
-        
-        # Save the corrected image
-        output_path = "corrected_" + os.path.basename(image_path)
-        cv2.imwrite(output_path, corrected_image)
-        print(f"Corrected image saved as '{output_path}'")
     else:
         print("Image is already in the correct orientation")
         # Display the original image
@@ -163,12 +167,14 @@ def main():
     plt.title("Thresholded Image for Dot Detection")
     plt.imshow(thresh, cmap='gray')
     
-    plt.tight_layout()
-    plt.show()
+    print("\nIMPORTANT: Please close all image windows to continue execution.")
+    plt.show()  # This will block until all windows are closed
     
     # Print quadrant information
     for quadrant, points in quadrants.items():
         print(f"{quadrant}: {len(points)} dots")
+    
+    print("\nScript completed successfully!")
 
 if __name__ == "__main__":
     main()
