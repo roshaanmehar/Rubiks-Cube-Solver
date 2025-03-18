@@ -1,7 +1,11 @@
 import cv2
 import numpy as np
-import argparse
 from collections import Counter
+
+# Hardcoded image path
+IMAGE_PATH = "rubiks_cube_face.jpg"
+# Optional: Path to save visualization output
+OUTPUT_PATH = "detected_colors.jpg"
 
 def detect_grid(image):
     """
@@ -166,19 +170,15 @@ def visualize_results(image, cells, colors):
     return result
 
 def main():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Detect colors on a Rubik's cube face")
-    parser.add_argument("image_path", help="Path to the image of a Rubik's cube face")
-    parser.add_argument("--output", "-o", help="Path to save visualization image")
-    args = parser.parse_args()
-    
-    # Load image
-    image = cv2.imread(args.image_path)
+    # Load image from hardcoded path
+    print(f"Loading image from: {IMAGE_PATH}")
+    image = cv2.imread(IMAGE_PATH)
     if image is None:
-        print(f"Error: Could not read image from {args.image_path}")
+        print(f"Error: Could not read image from {IMAGE_PATH}")
         return
     
     # Detect grid and extract cells
+    print("Detecting cube grid...")
     cells = detect_grid(image)
     
     # Check if we found 9 cells
@@ -187,6 +187,7 @@ def main():
         return
     
     # Identify colors
+    print("Identifying colors...")
     colors = identify_colors(cells)
     
     # Validate face
@@ -201,10 +202,10 @@ def main():
     print(f"Facelet string for Kociemba's algorithm: {facelet_string}")
     
     # Create visualization
-    if args.output:
-        result = visualize_results(image, cells, colors)
-        cv2.imwrite(args.output, result)
-        print(f"Visualization saved to {args.output}")
+    print(f"Saving visualization to: {OUTPUT_PATH}")
+    result = visualize_results(image, cells, colors)
+    cv2.imwrite(OUTPUT_PATH, result)
+    print(f"Visualization saved to {OUTPUT_PATH}")
 
 if __name__ == "__main__":
     main()
