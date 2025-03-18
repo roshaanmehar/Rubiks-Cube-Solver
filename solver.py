@@ -10,7 +10,21 @@ import kociemba
 
 cube1 = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
 
-cube = "UUUUUUUUUBBBRRRRRRRRRFFFFFFDDDDDDDDDFFFLLLLLLLLLBBBBBB"
+cube2 = "UUUUUUUUUBBBRRRRRRRRRFFFFFFDDDDDDDDDFFFLLLLLLLLLBBBBBB"
+
+cube3 = "UUUUUUUUURRLRRRRRRBBFFFFFFFDDDDDDDDDLLRLLLLLLFFBBBBBBB"
+
+cube = "ybwwwgybobygorbyyobowggywrbbyrrybgogggooorowrrwrrbgwwy"
+
+print(cube)
+
+cube = cube.replace('w', 'U')
+cube = cube.replace('r', 'R')
+cube = cube.replace('g', 'F')
+cube = cube.replace('y', 'D')
+cube = cube.replace('o', 'L')
+cube = cube.replace('b', 'B')
+
 
 print(cube)
 
