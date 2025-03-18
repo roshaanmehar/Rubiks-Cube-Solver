@@ -1,0 +1,7 @@
+from twophase import solve, solve_best, solve_best_generator
+
+solve("uuuuuuuuufffrrrrrrlllffffffdddddddddbbbllllllrrrbbbbbb")
+
+solve_best("uuuuuuuuufffrrrrrrlllffffffdddddddddbbbllllllrrrbbbbbb")
+
+solve_best_generator("uuuuuuuuufffrrrrrrlllffffffdddddddddbbbllllllrrrbbbbbb")
