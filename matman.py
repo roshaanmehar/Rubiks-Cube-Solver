@@ -5,10 +5,40 @@ def strmat(matstring):
     matrix = [list(row.strip()) for row in matstring.strip().split("\n")]
     return np.array(matrix)
 
-matstring = """www
+red = """www
 wrr
 yyw"""
 
-matrix = strmat(matstring)
+blue = """rbb
+gbg
+ggb"""
 
-print(np.array2string(matrix, separator=' '))
+orange = """wwy
+bob
+grr"""
+
+white = """boo
+ywr
+ggb"""
+
+yellow = """oyo
+oyo
+rbg"""
+
+green = """oyy
+ogw
+rry"""
+
+# matw = strmat(white)
+# matr = strmat(red)
+# matg = strmat(green)
+# maty = strmat(yellow)
+# mato = strmat(orange)
+# matb = strmat(blue)
+
+# print(np.array2string(matw, separator=' '))
+# print(np.array2string(matr, separator=' '))
+# print(np.array2string(matg, separator=' '))
+# print(np.array2string(maty, separator=' '))
+# print(np.array2string(mato, separator=' '))
+# print(np.array2string(matb, separator=' '))
