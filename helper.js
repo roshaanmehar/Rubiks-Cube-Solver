@@ -1,54 +1,60 @@
-// Opposite colors map
-const oppositeColors = {
-    'b': 'g',
-    'g': 'b',
-    'y': 'w',
-    'w': 'y',
-    'o': 'r',
-    'r': 'o'
-};
+// Get the input string from command line arguments
+const input = process.argv[2];
 
-// Function to validate the string
-function validateString(inputString) {
-    // Check if the input string has exactly 3 letters
-    if (inputString.length !== 3) {
-        return { status: false, reason: 'The string must be exactly 3 characters long.' };
+// Validation function
+function validateString(str) {
+  // Check if string is provided
+  if (!str) {
+    return { valid: false, reason: "No string provided" };
+  }
+  
+  // Check if string is exactly 3 characters
+  if (str.length !== 3) {
+    return { valid: false, reason: "String must be exactly 3 characters long" };
+  }
+  
+  // Check if string only contains allowed characters
+  const allowedChars = ['y', 'w', 'r', 'b', 'g', 'o'];
+  for (const char of str) {
+    if (!allowedChars.includes(char)) {
+      return { valid: false, reason: `Character '${char}' is not allowed. Only y, w, r, b, g, o are allowed` };
     }
-
-    // Check if the string contains only valid characters
-    const validChars = ['y', 'w', 'r', 'b', 'g', 'o'];
-    for (let char of inputString) {
-        if (!validChars.includes(char)) {
-            return { status: false, reason: `Invalid character '${char}' found. Valid characters are: y, w, r, b, g, o.` };
-        }
+  }
+  
+  // Check if any letter appears more than twice
+  const charCount = {};
+  for (const char of str) {
+    charCount[char] = (charCount[char] || 0) + 1;
+    if (charCount[char] > 2) {
+      return { valid: false, reason: `Character '${char}' appears more than twice` };
     }
-
-    // Check if any character appears more than twice
-    const charCount = {};
-    for (let char of inputString) {
-        charCount[char] = (charCount[char] || 0) + 1;
-        if (charCount[char] > 2) {
-            return { status: false, reason: `The character '${char}' cannot appear more than twice.` };
-        }
+  }
+  
+  // Check for opposite letters
+  const opposites = {
+    'b': 'g', 'g': 'b',
+    'y': 'w', 'w': 'y',
+    'o': 'r', 'r': 'o'
+  };
+  
+  for (let i = 0; i < str.length; i++) {
+    for (let j = i + 1; j < str.length; j++) {
+      if (opposites[str[i]] === str[j]) {
+        return { valid: false, reason: `Characters '${str[i]}' and '${str[j]}' are opposites and cannot be together` };
+      }
     }
-
-    // Check if the string contains any opposite pairs
-    for (let i = 0; i < inputString.length; i++) {
-        for (let j = i + 1; j < inputString.length; j++) {
-            if (oppositeColors[inputString[i]] === inputString[j]) {
-                return { status: false, reason: `The string contains opposite colors: '${inputString[i]}' and '${inputString[j]}'.` };
-            }
-        }
-    }
-
-    return { status: true, reason: 'ok' };
+  }
+  
+  // If all checks pass
+  return { valid: true, reason: "String meets all requirements" };
 }
 
-// Get the string from the command line arguments
-const inputString = process.argv[2];
-
-// Validate the string
-const result = validateString(inputString);
+// Validate the input
+const result = validateString(input);
 
 // Output the result
-console.log(result.reason);
+if (result.valid) {
+  console.log("ok");
+} else {
+  console.log(`not ok - ${result.reason}`);
+}
