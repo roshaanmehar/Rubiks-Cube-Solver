@@ -42,3 +42,4 @@ rry"""
 # print(np.array2string(maty, separator=' '))
 # print(np.array2string(mato, separator=' '))
 # print(np.array2string(matb, separator=' '))
+
