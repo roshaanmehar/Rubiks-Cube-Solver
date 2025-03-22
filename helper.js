@@ -21,12 +21,12 @@ function validateString(str) {
     }
   }
   
-  // Check if any letter appears more than twice
+  // Check if any letter appears more than once
   const charCount = {};
   for (const char of str) {
     charCount[char] = (charCount[char] || 0) + 1;
-    if (charCount[char] > 2) {
-      return { valid: false, reason: `Character '${char}' appears more than twice` };
+    if (charCount[char] > 1) {
+      return { valid: false, reason: `Character '${char}' appears more than once` };
     }
   }
   
