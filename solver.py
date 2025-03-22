@@ -18,7 +18,9 @@ cube4 = "ybwwwgybobygorbyyobowggywrbbyrrybgogggooorowrrwrrbgwwy"
 
 cube5 ="oworwoborgyyrrgbwyrbwwgbobrbyygybywowgwrorrywgogobybgg"
 
-cube = "wrgwwggrbwyywrobrbywoggorbrwoywyyryygboyorwgbrbogbboog"
+cube6 = "wrgwwggrbwyywrobrbywoggorbrwoywyyryygboyorwgbrbogbboog"
+
+cube = "orbowgbygywwyrwwrwyrrwgoyyooogyyboorybrworwbgrbbgbgggb"
 
 print(cube)
 
