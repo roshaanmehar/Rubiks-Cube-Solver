@@ -39,200 +39,299 @@ def is_valid_combination(colors):
     
     # Check for duplicates
     if len(colors) != len(set(colors)):
-        return False
+        return False, "Contains duplicate colors"
     
     # Check for opposites
     for i in range(len(colors)):
         for j in range(i + 1, len(colors)):
             if opposites.get(colors[i]) == colors[j]:
-                return False
+                return False, f"Contains opposite colors {colors[i]} and {colors[j]}"
     
-    return True
+    return True, "Valid combination"
 
-def validate_cube(face_matrices):
+def print_cube_state(face_matrices, step_name):
+    """Print the current state of the cube faces with step name."""
+    print(f"\n--- {step_name} ---")
+    for face in face_matrices:
+        print(f"{face} face:")
+        print(np.array2string(face_matrices[face], separator=' '))
+
+def validate_cube(face_matrices, verbose=False):
     """Validate all corners and edges of the cube."""
     # Define the corner positions (face, (i, j))
     corners = [
-        # Top layer corners (white face)
-        [('w', (0, 0)), ('o', (0, 2)), ('b', (0, 0))],  # w-o-b
-        [('w', (0, 2)), ('b', (0, 2)), ('r', (0, 0))],  # w-b-r
-        [('w', (2, 2)), ('r', (0, 2)), ('g', (0, 2))],  # w-r-g
-        [('w', (2, 0)), ('g', (0, 0)), ('o', (0, 0))],  # w-g-o
+        # Top layer corners
+        [('w', (0, 0)), ('o', (0, 2)), ('b', (0, 0))],  # w-o-b (Top-Left, Back-Left, Left-Top)
+        [('w', (0, 2)), ('r', (0, 0)), ('b', (0, 2))],  # w-r-b (Top-Right, Right-Top, Back-Right)
+        [('w', (2, 2)), ('g', (0, 2)), ('r', (0, 2))],  # w-g-r (Bottom-Right, Front-Right, Right-Bottom)
+        [('w', (2, 0)), ('o', (0, 0)), ('g', (0, 0))],  # w-o-g (Bottom-Left, Left-Bottom, Front-Left)
         
-        # Bottom layer corners (yellow face)
-        [('y', (0, 0)), ('o', (2, 2)), ('g', (2, 0))],  # y-o-g
-        [('y', (0, 2)), ('g', (2, 2)), ('r', (2, 2))],  # y-g-r
-        [('y', (2, 2)), ('r', (2, 0)), ('b', (2, 2))],  # y-r-b
-        [('y', (2, 0)), ('b', (2, 0)), ('o', (2, 0))],  # y-b-o
+        # Bottom layer corners
+        [('y', (0, 0)), ('g', (2, 0)), ('o', (2, 2))],  # y-g-o (Top-Left, Front-Left-Bottom, Left-Bottom-Right)
+        [('y', (0, 2)), ('r', (2, 2)), ('g', (2, 2))],  # y-r-g (Top-Right, Right-Bottom-Right, Front-Bottom-Right)
+        [('y', (2, 2)), ('b', (2, 2)), ('r', (2, 0))],  # y-b-r (Bottom-Right, Back-Bottom-Right, Right-Top-Right)
+        [('y', (2, 0)), ('o', (2, 0)), ('b', (2, 0))],  # y-o-b (Bottom-Left, Left-Top-Right, Back-Bottom-Left)
     ]
     
     # Define the edge positions
     edges = [
         # Top layer edges
-        [('w', (0, 1)), ('b', (0, 1))],  # w-b
-        [('w', (1, 2)), ('r', (0, 1))],  # w-r
-        [('w', (2, 1)), ('g', (0, 1))],  # w-g
-        [('w', (1, 0)), ('o', (0, 1))],  # w-o
+        [('w', (0, 1)), ('b', (0, 1))],  # w-b (Top-Center, Back-Top-Center)
+        [('w', (1, 2)), ('r', (0, 1))],  # w-r (Right-Center, Right-Top-Center)
+        [('w', (2, 1)), ('g', (0, 1))],  # w-g (Bottom-Center, Front-Top-Center)
+        [('w', (1, 0)), ('o', (0, 1))],  # w-o (Left-Center, Left-Top-Center)
         
         # Middle layer edges
-        [('b', (1, 2)), ('r', (1, 0))],  # b-r
-        [('r', (1, 2)), ('g', (1, 2))],  # r-g
-        [('g', (1, 0)), ('o', (1, 2))],  # g-o
-        [('o', (1, 0)), ('b', (1, 0))],  # o-b
+        [('b', (1, 2)), ('r', (1, 0))],  # b-r (Back-Right-Center, Right-Left-Center)
+        [('r', (1, 2)), ('g', (1, 2))],  # r-g (Right-Right-Center, Front-Right-Center)
+        [('g', (1, 0)), ('o', (1, 2))],  # g-o (Front-Left-Center, Left-Right-Center)
+        [('o', (1, 0)), ('b', (1, 0))],  # o-b (Left-Left-Center, Back-Left-Center)
         
         # Bottom layer edges
-        [('y', (0, 1)), ('g', (2, 1))],  # y-g
-        [('y', (1, 2)), ('r', (2, 1))],  # y-r
-        [('y', (2, 1)), ('b', (2, 1))],  # y-b
-        [('y', (1, 0)), ('o', (2, 1))],  # y-o
+        [('y', (0, 1)), ('g', (2, 1))],  # y-g (Top-Center, Front-Bottom-Center)
+        [('y', (1, 2)), ('r', (2, 1))],  # y-r (Right-Center, Right-Bottom-Center)
+        [('y', (2, 1)), ('b', (2, 1))],  # y-b (Bottom-Center, Back-Bottom-Center)
+        [('y', (1, 0)), ('o', (2, 1))],  # y-o (Left-Center, Left-Bottom-Center)
     ]
     
+    is_valid = True
+    error_messages = []
+    
     # Check all corners
-    for corner in corners:
+    if verbose:
+        print("\nChecking corners:")
+    
+    for i, corner in enumerate(corners):
         corner_colors = get_corner(face_matrices, corner)
-        if not is_valid_combination(corner_colors):
-            return False, f"Invalid corner: {corner_colors}"
+        corner_valid, reason = is_valid_combination(corner_colors)
+        
+        if verbose:
+            corner_name = f"Corner {i+1}: {' '.join([f'{face}[{i},{j}]' for face, (i, j) in corner])}"
+            print(f"{corner_name} - Colors: {corner_colors} - {'Valid' if corner_valid else 'Invalid: ' + reason}")
+        
+        if not corner_valid:
+            is_valid = False
+            error_messages.append(f"Invalid corner {i+1}: {corner_colors} - {reason}")
     
     # Check all edges
-    for edge in edges:
+    if verbose:
+        print("\nChecking edges:")
+    
+    for i, edge in enumerate(edges):
         edge_colors = get_edge(face_matrices, edge)
-        if not is_valid_combination(edge_colors):
-            return False, f"Invalid edge: {edge_colors}"
+        edge_valid, reason = is_valid_combination(edge_colors)
+        
+        if verbose:
+            edge_name = f"Edge {i+1}: {' '.join([f'{face}[{i},{j}]' for face, (i, j) in edge])}"
+            print(f"{edge_name} - Colors: {edge_colors} - {'Valid' if edge_valid else 'Invalid: ' + reason}")
+        
+        if not edge_valid:
+            is_valid = False
+            error_messages.append(f"Invalid edge {i+1}: {edge_colors} - {reason}")
     
-    return True, "Cube is valid"
+    if is_valid:
+        return True, "Cube is valid"
+    else:
+        return False, ", ".join(error_messages)
 
-def solve_cube(face_matrices):
-    """Attempt to solve the cube by rotating faces."""
-    # Start with white face as reference
-    # First handle the white-blue-orange corner
-    attempts = 0
-    max_attempts = 20  # Prevent infinite loops
+def solve_cube_step_by_step(face_matrices):
+    """Attempt to solve the cube by rotating faces, with detailed logging."""
+    original_matrices = {face: matrix.copy() for face, matrix in face_matrices.items()}
     
-    while attempts < max_attempts:
-        # Check white-blue-orange corner
-        wbo_corner = get_corner(face_matrices, [('w', (0, 0)), ('b', (0, 0)), ('o', (0, 2))])
-        if not is_valid_combination(wbo_corner):
-            # Try rotating blue face
-            face_matrices['b'] = rotate_matrix_clockwise(face_matrices['b'])
-            continue  # Recheck the corner
+    print_cube_state(face_matrices, "Initial State")
+    
+    # Define corners in the order we want to solve them
+    corner_definitions = [
+        {
+            "name": "White-Orange-Blue (WOB)",
+            "indices": [('w', (0, 0)), ('o', (0, 2)), ('b', (0, 0))],
+            "rotation_priority": ['o', 'b', 'w']  # Try rotating these faces in this order
+        },
+        {
+            "name": "White-Red-Blue (WRB)",
+            "indices": [('w', (0, 2)), ('r', (0, 0)), ('b', (0, 2))],
+            "rotation_priority": ['r', 'b', 'w']
+        },
+        {
+            "name": "White-Green-Red (WGR)",
+            "indices": [('w', (2, 2)), ('g', (0, 2)), ('r', (0, 2))],
+            "rotation_priority": ['g', 'r', 'w']
+        },
+        {
+            "name": "White-Orange-Green (WOG)",
+            "indices": [('w', (2, 0)), ('o', (0, 0)), ('g', (0, 0))],
+            "rotation_priority": ['o', 'g', 'w']
+        }
+    ]
+    
+    # Define edges in a similar way
+    edge_definitions = [
+        {
+            "name": "White-Blue (WB)",
+            "indices": [('w', (0, 1)), ('b', (0, 1))],
+            "rotation_priority": ['b', 'w']
+        },
+        {
+            "name": "White-Red (WR)",
+            "indices": [('w', (1, 2)), ('r', (0, 1))],
+            "rotation_priority": ['r', 'w']
+        },
+        {
+            "name": "White-Green (WG)",
+            "indices": [('w', (2, 1)), ('g', (0, 1))],
+            "rotation_priority": ['g', 'w']
+        },
+        {
+            "name": "White-Orange (WO)",
+            "indices": [('w', (1, 0)), ('o', (0, 1))],
+            "rotation_priority": ['o', 'w']
+        }
+    ]
+    
+    # First, try to solve the top layer corners
+    for corner_idx, corner in enumerate(corner_definitions):
+        print(f"\n--- Solving {corner['name']} Corner ---")
         
-        # Check white-blue-red corner
-        wbr_corner = get_corner(face_matrices, [('w', (0, 2)), ('b', (0, 2)), ('r', (0, 0))])
-        if not is_valid_combination(wbr_corner):
-            # Try rotating red face
-            face_matrices['r'] = rotate_matrix_clockwise(face_matrices['r'])
-            # Recheck first corner after rotation
-            wbo_corner = get_corner(face_matrices, [('w', (0, 0)), ('b', (0, 0)), ('o', (0, 2))])
-            if not is_valid_combination(wbo_corner):
-                # If first corner now invalid, undo red rotation and try blue
-                face_matrices['r'] = rotate_matrix_counter_clockwise(face_matrices['r'])
-                face_matrices['b'] = rotate_matrix_clockwise(face_matrices['b'])
-                continue
-            continue  # Recheck the corner
+        max_rotations = 3  # Maximum rotations per face
+        solved = False
         
-        # Check white-red-green corner
-        wrg_corner = get_corner(face_matrices, [('w', (2, 2)), ('r', (0, 2)), ('g', (0, 2))])
-        if not is_valid_combination(wrg_corner):
-            # Try rotating green face
-            face_matrices['g'] = rotate_matrix_clockwise(face_matrices['g'])
-            # Recheck previous corners
-            if not is_valid_combination(get_corner(face_matrices, [('w', (0, 0)), ('b', (0, 0)), ('o', (0, 2))])) or \
-               not is_valid_combination(get_corner(face_matrices, [('w', (0, 2)), ('b', (0, 2)), ('r', (0, 0))])):
-                # If previous corners now invalid, undo green rotation and try red
-                face_matrices['g'] = rotate_matrix_counter_clockwise(face_matrices['g'])
-                face_matrices['r'] = rotate_matrix_clockwise(face_matrices['r'])
-                continue
-            continue  # Recheck the corner
-        
-        # Check white-green-orange corner
-        wgo_corner = get_corner(face_matrices, [('w', (2, 0)), ('g', (0, 0)), ('o', (0, 0))])
-        if not is_valid_combination(wgo_corner):
-            # Try rotating orange face
-            face_matrices['o'] = rotate_matrix_clockwise(face_matrices['o'])
-            # Recheck previous corners
-            if not is_valid_combination(get_corner(face_matrices, [('w', (0, 0)), ('b', (0, 0)), ('o', (0, 2))])) or \
-               not is_valid_combination(get_corner(face_matrices, [('w', (0, 2)), ('b', (0, 2)), ('r', (0, 0))])) or \
-               not is_valid_combination(get_corner(face_matrices, [('w', (2, 2)), ('r', (0, 2)), ('g', (0, 2))])):
-                # If previous corners now invalid, undo orange rotation and try white as last resort
-                face_matrices['o'] = rotate_matrix_counter_clockwise(face_matrices['o'])
-                face_matrices['w'] = rotate_matrix_clockwise(face_matrices['w'])
-                continue
-            continue  # Recheck the corner
-        
-        # Now check edges after corners are validated
-        # We'll check each edge and rotate faces as needed
-        for edge_def in [
-            # Top layer edges
-            [('w', (0, 1)), ('b', (0, 1))],  # w-b
-            [('w', (1, 2)), ('r', (0, 1))],  # w-r
-            [('w', (2, 1)), ('g', (0, 1))],  # w-g
-            [('w', (1, 0)), ('o', (0, 1))],  # w-o
-            
-            # Middle layer edges
-            [('b', (1, 2)), ('r', (1, 0))],  # b-r
-            [('r', (1, 2)), ('g', (1, 2))],  # r-g
-            [('g', (1, 0)), ('o', (1, 2))],  # g-o
-            [('o', (1, 0)), ('b', (1, 0))],  # o-b
-        ]:
-            edge_colors = get_edge(face_matrices, edge_def)
-            if not is_valid_combination(edge_colors):
-                # Based on which edge is invalid, rotate the appropriate face
-                face1, _ = edge_def[0]
-                face2, _ = edge_def[1]
+        for face in corner["rotation_priority"]:
+            rotations = 0
+            while rotations < max_rotations and not solved:
+                corner_colors = get_corner(face_matrices, corner["indices"])
+                valid, reason = is_valid_combination(corner_colors)
                 
-                # Try rotating the first face
-                face_matrices[face1] = rotate_matrix_clockwise(face_matrices[face1])
+                print(f"Corner colors: {corner_colors} - {'Valid' if valid else 'Invalid: ' + reason}")
                 
-                # Check if this resolves all previous valid corners and edges
-                if not validate_cube(face_matrices)[0]:
-                    # If not, undo and try the second face
-                    face_matrices[face1] = rotate_matrix_counter_clockwise(face_matrices[face1])
-                    face_matrices[face2] = rotate_matrix_clockwise(face_matrices[face2])
+                if valid:
+                    solved = True
+                    print(f"Corner {corner['name']} is now valid")
+                    break
+                
+                print(f"Rotating face {face} clockwise")
+                face_matrices[face] = rotate_matrix_clockwise(face_matrices[face])
+                print_cube_state(face_matrices, f"After rotating {face}")
+                
+                # Check if previous corners are still valid
+                all_previous_valid = True
+                for prev_idx in range(corner_idx):
+                    prev_corner = corner_definitions[prev_idx]
+                    prev_colors = get_corner(face_matrices, prev_corner["indices"])
+                    prev_valid, _ = is_valid_combination(prev_colors)
                     
-                    if not validate_cube(face_matrices)[0]:
-                        # If still not resolved, this approach won't work
-                        # For simplicity, we'll undo and continue to next attempt
-                        face_matrices[face2] = rotate_matrix_counter_clockwise(face_matrices[face2])
-                continue
-        
-        # Finally, handle the yellow face
-        # If all white corners and edges are valid, we can now adjust the yellow face
-        yellow_corners = [
-            [('y', (0, 0)), ('o', (2, 2)), ('g', (2, 0))],  # y-o-g
-            [('y', (0, 2)), ('g', (2, 2)), ('r', (2, 2))],  # y-g-r
-            [('y', (2, 2)), ('r', (2, 0)), ('b', (2, 2))],  # y-r-b
-            [('y', (2, 0)), ('b', (2, 0)), ('o', (2, 0))],  # y-b-o
-        ]
-        
-        yellow_edges = [
-            [('y', (0, 1)), ('g', (2, 1))],  # y-g
-            [('y', (1, 2)), ('r', (2, 1))],  # y-r
-            [('y', (2, 1)), ('b', (2, 1))],  # y-b
-            [('y', (1, 0)), ('o', (2, 1))],  # y-o
-        ]
-        
-        # Check yellow corners and rotate yellow face if needed
-        for corner in yellow_corners:
-            corner_colors = get_corner(face_matrices, corner)
-            if not is_valid_combination(corner_colors):
-                face_matrices['y'] = rotate_matrix_clockwise(face_matrices['y'])
+                    if not prev_valid:
+                        all_previous_valid = False
+                        print(f"Rotation of {face} invalidated previous corner {prev_corner['name']}")
+                        break
+                
+                if not all_previous_valid:
+                    print(f"Undoing rotation of {face}")
+                    face_matrices[face] = rotate_matrix_counter_clockwise(face_matrices[face])
+                    
+                rotations += 1
+            
+            if solved:
                 break
         
-        # Check yellow edges
-        for edge in yellow_edges:
-            edge_colors = get_edge(face_matrices, edge)
-            if not is_valid_combination(edge_colors):
-                face_matrices['y'] = rotate_matrix_clockwise(face_matrices['y'])
-                break
-        
-        # Check if the entire cube is valid now
-        is_valid, message = validate_cube(face_matrices)
-        if is_valid:
-            return True, face_matrices
-        
-        attempts += 1
+        if not solved:
+            print(f"Could not solve corner {corner['name']} after trying all rotations")
+            print("Reverting to original state")
+            return False, "Failed to solve corners"
     
-    return False, "Could not solve the cube within the maximum number of attempts"
+    print("\n--- All corners solved, now solving edges ---")
+    
+    # Now solve the edges
+    for edge_idx, edge in enumerate(edge_definitions):
+        print(f"\n--- Solving {edge['name']} Edge ---")
+        
+        max_rotations = 3
+        solved = False
+        
+        for face in edge["rotation_priority"]:
+            rotations = 0
+            while rotations < max_rotations and not solved:
+                edge_colors = get_edge(face_matrices, edge["indices"])
+                valid, reason = is_valid_combination(edge_colors)
+                
+                print(f"Edge colors: {edge_colors} - {'Valid' if valid else 'Invalid: ' + reason}")
+                
+                if valid:
+                    solved = True
+                    print(f"Edge {edge['name']} is now valid")
+                    break
+                
+                print(f"Rotating face {face} clockwise")
+                face_matrices[face] = rotate_matrix_clockwise(face_matrices[face])
+                print_cube_state(face_matrices, f"After rotating {face}")
+                
+                # Check if corners and previous edges are still valid
+                still_valid = True
+                
+                # Check corners
+                for corner in corner_definitions:
+                    corner_colors = get_corner(face_matrices, corner["indices"])
+                    corner_valid, _ = is_valid_combination(corner_colors)
+                    if not corner_valid:
+                        still_valid = False
+                        print(f"Rotation invalidated corner {corner['name']}")
+                        break
+                
+                # Check previous edges
+                if still_valid:
+                    for prev_idx in range(edge_idx):
+                        prev_edge = edge_definitions[prev_idx]
+                        prev_colors = get_edge(face_matrices, prev_edge["indices"])
+                        prev_valid, _ = is_valid_combination(prev_colors)
+                        
+                        if not prev_valid:
+                            still_valid = False
+                            print(f"Rotation invalidated previous edge {prev_edge['name']}")
+                            break
+                
+                if not still_valid:
+                    print(f"Undoing rotation of {face}")
+                    face_matrices[face] = rotate_matrix_counter_clockwise(face_matrices[face])
+                
+                rotations += 1
+            
+            if solved:
+                break
+        
+        if not solved:
+            print(f"Could not solve edge {edge['name']} after trying all rotations")
+            print("Reverting to original state")
+            return False, "Failed to solve edges"
+    
+    print("\n--- Checking if yellow side needs adjustments ---")
+    
+    # Now handle the yellow side
+    yellow_rotation_count = 0
+    while yellow_rotation_count < 4:  # Try all 4 possible orientations
+        is_valid, message = validate_cube(face_matrices, verbose=True)
+        
+        if is_valid:
+            print("Yellow side is valid, cube is solved!")
+            break
+        
+        print("Rotating yellow face clockwise")
+        face_matrices['y'] = rotate_matrix_clockwise(face_matrices['y'])
+        print_cube_state(face_matrices, "After rotating yellow face")
+        
+        yellow_rotation_count += 1
+    
+    if yellow_rotation_count == 4 and not is_valid:
+        print("Could not solve yellow side after trying all rotations")
+        return False, "Failed to solve yellow side"
+    
+    # Final validation
+    is_valid, message = validate_cube(face_matrices, verbose=True)
+    if is_valid:
+        print("\n--- CUBE SOLVED SUCCESSFULLY ---")
+        return True, face_matrices
+    else:
+        print("\n--- FAILED TO SOLVE CUBE ---")
+        print(f"Reason: {message}")
+        return False, message
 
 def matrix_to_string(face_matrices):
     """Convert face matrices to a single string in URFDLB order."""
@@ -246,6 +345,43 @@ def matrix_to_string(face_matrices):
                 result += face_matrices[face][i, j]
     
     return result
+
+def annotate_cube_visualization(face_matrices):
+    """Generate a text visualization of the cube with labels."""
+    # Create a template for the visualization
+    template = """
+                  |--------------|
+                  | {w00} | {w01} | {w02} |
+                  |--------------|
+                  | {w10} | {w11} | {w12} |
+                  |--------------|
+                  | {w20} | {w21} | {w22} |
+                  |--------------|
+|--------------|--------------|--------------|--------------|
+| {o00} | {o01} | {o02} | {g00} | {g01} | {g02} | {r00} | {r01} | {r02} | {b00} | {b01} | {b02} |
+|--------------|--------------|--------------|--------------|
+| {o10} | {o11} | {o12} | {g10} | {g11} | {g12} | {r10} | {r11} | {r12} | {b10} | {b11} | {b12} |
+|--------------|--------------|--------------|--------------|
+| {o20} | {o21} | {o22} | {g20} | {g21} | {g22} | {r20} | {r21} | {r22} | {b20} | {b21} | {b22} |
+|--------------|--------------|--------------|--------------|
+                  |--------------|
+                  | {y00} | {y01} | {y02} |
+                  |--------------|
+                  | {y10} | {y11} | {y12} |
+                  |--------------|
+                  | {y20} | {y21} | {y22} |
+                  |--------------|
+    """
+    
+    # Create a dictionary to map template placeholders to cube values
+    mapping = {}
+    for face in face_matrices:
+        for i in range(3):
+            for j in range(3):
+                mapping[f"{face}{i}{j}"] = face_matrices[face][i, j]
+    
+    # Fill in the template
+    return template.format(**mapping)
 
 # Main execution
 def main():
@@ -291,14 +427,18 @@ rry""")
         print(np.array2string(face_matrices[face], separator=' '))
         print()
     
+    # Visual representation of the cube
+    print("Initial cube visualization:")
+    print(annotate_cube_visualization(face_matrices))
+    
     # Validate the initial state
-    is_valid, message = validate_cube(face_matrices)
+    is_valid, message = validate_cube(face_matrices, verbose=True)
     print(f"Initial validation: {message}")
     
     if not is_valid:
         # Try to solve
         print("Attempting to solve...")
-        solved, result = solve_cube(face_matrices)
+        solved, result = solve_cube_step_by_step(face_matrices)
         
         if solved:
             face_matrices = result
@@ -309,6 +449,8 @@ rry""")
                 print(f"{face} face:")
                 print(np.array2string(face_matrices[face], separator=' '))
                 print()
+            print("Solved cube visualization:")
+            print(annotate_cube_visualization(face_matrices))
         else:
             print(f"Failed to solve: {result}")
     
