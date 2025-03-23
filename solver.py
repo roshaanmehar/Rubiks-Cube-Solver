@@ -20,7 +20,7 @@ cube5 ="oworwoborgyyrrgbwyrbwwgbobrbyygybywowgwrorrywgogobybgg"
 
 cube6 = "wrgwwggrbwyywrobrbywoggorbrwoywyyryygboyorwgbrbogbboog"
 
-cube = "booywrggbwwwwrryywroorgyywyoogyyboorwwybobgrrrbbgbgggb"
+cube = "gyorwoborgbyyrbowwwggrgorybwbrrybrrgowwyogygbooywbwbgy"
 
 print(cube)
 

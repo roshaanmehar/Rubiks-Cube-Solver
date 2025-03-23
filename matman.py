@@ -26,16 +26,6 @@ class CubeState:
                 'o': np.full((3, 3), 'o'),
                 'b': np.full((3, 3), 'b')
             }
-        
-        # Define face adjacency (which faces are adjacent to each face and how they connect)
-        self.adjacency = {
-            'w': [('b', 0, False), ('r', 0, False), ('g', 0, False), ('o', 0, False)],  # top rows of adjacent faces
-            'y': [('g', 2, False), ('r', 2, False), ('b', 2, False), ('o', 2, False)],  # bottom rows of adjacent faces
-            'r': [('w', None, 1), ('b', None, 3), ('y', None, 1), ('g', None, 3)],      # right, left, right, left cols
-            'o': [('w', None, 3), ('g', None, 1), ('y', None, 3), ('b', None, 1)],      # left, right, left, right cols
-            'g': [('w', 2, False), ('r', None, 1), ('y', 0, True), ('o', None, 3)],     # complex connections
-            'b': [('w', 0, True), ('o', None, 1), ('y', 2, True), ('r', None, 3)]       # complex connections
-        }
     
     def copy(self):
         """Create a deep copy of the cube state."""
@@ -69,42 +59,86 @@ class CubeState:
         elif direction == '2':
             new_state.faces[face] = np.rot90(self.faces[face], k=2)
         
-        # Update adjacent faces
-        adjacent = self.adjacency[face]
-        
-        # Get the values from adjacent faces that need to be rotated
-        values = []
-        for adj_face, idx, reverse in adjacent:
-            if idx is not None:  # Row
-                row = self.faces[adj_face][idx, :].copy()
-                if reverse:
-                    row = row[::-1]
-                values.append(row)
-            else:  # Column
-                col = self.faces[adj_face][:, idx % 4].copy()
-                if reverse:
-                    col = col[::-1]
-                values.append(col)
-        
-        # Rotate the values based on direction
-        if direction == 'cw':
-            values = [values[-1]] + values[:-1]
-        elif direction == 'ccw':
-            values = values[1:] + [values[0]]
-        elif direction == '2':
-            values = values[2:] + values[:2]
-        
-        # Update the adjacent faces with rotated values
-        for i, (adj_face, idx, reverse) in enumerate(adjacent):
-            val = values[i]
-            if reverse:
-                val = val[::-1]
+        # Update adjacent faces based on which face is being rotated
+        if face == 'w':  # White (top) face
+            # Save values from the top row of each adjacent face
+            temp = np.copy(new_state.faces['g'][0, :])
+            # Move right column of orange to top row of green (reversed)
+            new_state.faces['g'][0, :] = new_state.faces['o'][:, 2][::-1]
+            # Move top row of blue to right column of orange
+            new_state.faces['o'][:, 2] = new_state.faces['b'][0, :]
+            # Move left column of red to top row of blue (reversed)
+            new_state.faces['b'][0, :] = new_state.faces['r'][:, 0][::-1]
+            # Move saved top row of green to left column of red
+            new_state.faces['r'][:, 0] = temp
             
-            if idx is not None:  # Row
-                new_state.faces[adj_face][idx, :] = val
-            else:  # Column
-                new_state.faces[adj_face][:, i % 4] = val
+        elif face == 'y':  # Yellow (bottom) face
+            # Save values from the bottom row of green
+            temp = np.copy(new_state.faces['g'][2, :])
+            # Move bottom row of red to bottom row of green
+            new_state.faces['g'][2, :] = new_state.faces['r'][2, :]
+            # Move bottom row of blue to bottom row of red
+            new_state.faces['r'][2, :] = new_state.faces['b'][2, :]
+            # Move bottom row of orange to bottom row of blue
+            new_state.faces['b'][2, :] = new_state.faces['o'][2, :]
+            # Move saved bottom row of green to bottom row of orange
+            new_state.faces['o'][2, :] = temp
+            
+        elif face == 'r':  # Red face
+            # Save values from the right column of white
+            temp = np.copy(new_state.faces['w'][:, 2])
+            # Move right column of green to right column of white
+            new_state.faces['w'][:, 2] = new_state.faces['g'][:, 2]
+            # Move right column of yellow to right column of green
+            new_state.faces['g'][:, 2] = new_state.faces['y'][:, 2]
+            # Move left column of blue to right column of yellow (reversed)
+            new_state.faces['y'][:, 2] = new_state.faces['b'][:, 0][::-1]
+            # Move saved right column of white to left column of blue (reversed)
+            new_state.faces['b'][:, 0] = temp[::-1]
+            
+        elif face == 'o':  # Orange face
+            # Save values from the left column of white
+            temp = np.copy(new_state.faces['w'][:, 0])
+            # Move left column of blue to left column of white (reversed)
+            new_state.faces['w'][:, 0] = new_state.faces['b'][:, 2][::-1]
+            # Move left column of yellow to left column of blue (reversed)
+            new_state.faces['b'][:, 2] = new_state.faces['y'][:, 0][::-1]
+            # Move left column of green to left column of yellow
+            new_state.faces['y'][:, 0] = new_state.faces['g'][:, 0]
+            # Move saved left column of white to left column of green
+            new_state.faces['g'][:, 0] = temp
+            
+        elif face == 'g':  # Green face
+            # Save values from the bottom row of white
+            temp = np.copy(new_state.faces['w'][2, :])
+            # Move left column of red to bottom row of white (reversed)
+            new_state.faces['w'][2, :] = new_state.faces['r'][:, 1]
+            # Move top row of yellow to left column of red (reversed)
+            new_state.faces['r'][:, 1] = new_state.faces['y'][0, :][::-1]
+            # Move right column of orange to top row of yellow (reversed)
+            new_state.faces['y'][0, :] = new_state.faces['o'][:, 1][::-1]
+            # Move saved bottom row of white to right column of orange
+            new_state.faces['o'][:, 1] = temp
+            
+        elif face == 'b':  # Blue face
+            # Save values from the top row of white
+            temp = np.copy(new_state.faces['w'][0, :])
+            # Move right column of orange to top row of white
+            new_state.faces['w'][0, :] = new_state.faces['o'][:, 1]
+            # Move bottom row of yellow to right column of orange (reversed)
+            new_state.faces['o'][:, 1] = new_state.faces['y'][2, :][::-1]
+            # Move left column of red to bottom row of yellow
+            new_state.faces['y'][2, :] = new_state.faces['r'][:, 1]
+            # Move saved top row of white to left column of red (reversed)
+            new_state.faces['r'][:, 1] = temp[::-1]
         
+        # If direction is counter-clockwise, apply the rotation three times to get the same effect
+        if direction == 'ccw':
+            new_state = new_state.rotate_face(face, 'cw')
+            new_state = new_state.rotate_face(face, 'cw')
+        elif direction == '2':
+            new_state = new_state.rotate_face(face, 'cw')
+            
         return new_state
     
     def get_corner(self, corner_indices):
@@ -576,7 +610,32 @@ def main():
     print(visualize_cube(cube))
     
     # Validate the cube
-    if not cube.is_valid(verbose=True):
+    _, corner_colors, _, edge_colors = cube.get_all_corners_and_edges()
+    
+    # Check for invalid corners
+    invalid_corners = []
+    for i, colors in enumerate(corner_colors):
+        if not is_valid_combination(colors):
+            invalid_corners.append((i+1, colors))
+    
+    # Check for invalid edges
+    invalid_edges = []
+    for i, colors in enumerate(edge_colors):
+        if not is_valid_combination(colors):
+            invalid_edges.append((i+1, colors))
+    
+    # Print validation results
+    if invalid_corners:
+        print("Invalid corners:")
+        for i, colors in invalid_corners:
+            print(f"Corner {i}: {colors}")
+    
+    if invalid_edges:
+        print("Invalid edges:")
+        for i, colors in invalid_edges:
+            print(f"Edge {i}: {colors}")
+    
+    if invalid_corners or invalid_edges:
         print("Warning: The cube configuration appears to be invalid.")
         print("Attempting to solve anyway...")
     
