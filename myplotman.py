@@ -1,6 +1,6 @@
 import numpy as np
 import tkinter as tk
-from tkinter import Canvas, Frame, Label, Button
+from tkinter import Canvas, Frame, Label, Button, StringVar, OptionMenu
 import time
 from collections import Counter
 
@@ -27,11 +27,11 @@ class CubeState:
                 'b': np.full((3, 3), 'b')
             }
         
-        # Define the opposite colors
+        # Define the correct opposite colors
         self.opposites = {
-            'w': 'y', 'y': 'w',
-            'r': 'o', 'o': 'r',
-            'g': 'b', 'b': 'g'
+            'w': 'y', 'y': 'w',  # White opposite Yellow
+            'r': 'o', 'o': 'r',  # Red opposite Orange
+            'g': 'b', 'b': 'g'   # Green opposite Blue
         }
         
         # Define color mapping for visualization
@@ -182,6 +182,58 @@ class CubeState:
                     return False, f"Contains opposite colors {colors[i]} and {colors[j]}"
         
         return True, "Valid"
+    
+    def validate_cube(self):
+        """Validate the entire cube to check if it's solvable."""
+        # Define all corners and edges
+        corners = [
+            # White-face corners
+            [('w', (0, 0)), ('o', (0, 2)), ('b', (0, 0))],  # White-Orange-Blue
+            [('w', (0, 2)), ('r', (0, 0)), ('b', (0, 2))],  # White-Red-Blue
+            [('w', (2, 2)), ('r', (0, 2)), ('g', (0, 2))],  # White-Red-Green
+            [('w', (2, 0)), ('o', (0, 0)), ('g', (0, 0))],  # White-Orange-Green
+            # Yellow-face corners
+            [('y', (0, 0)), ('g', (2, 0)), ('o', (2, 2))],  # Yellow-Green-Orange
+            [('y', (0, 2)), ('r', (2, 2)), ('g', (2, 2))],  # Yellow-Red-Green
+            [('y', (2, 2)), ('b', (2, 2)), ('r', (2, 0))],  # Yellow-Blue-Red
+            [('y', (2, 0)), ('o', (2, 0)), ('b', (2, 0))],  # Yellow-Orange-Blue
+        ]
+        
+        edges = [
+            # White-face edges
+            [('w', (0, 1)), ('b', (0, 1))],  # White-Blue
+            [('w', (1, 2)), ('r', (0, 1))],  # White-Red
+            [('w', (2, 1)), ('g', (0, 1))],  # White-Green
+            [('w', (1, 0)), ('o', (0, 1))],  # White-Orange
+            # Middle layer edges
+            [('b', (1, 2)), ('r', (1, 0))],  # Blue-Red
+            [('r', (1, 2)), ('g', (1, 2))],  # Red-Green
+            [('g', (1, 0)), ('o', (1, 2))],  # Green-Orange
+            [('o', (1, 0)), ('b', (1, 0))],  # Orange-Blue
+            # Yellow-face edges
+            [('y', (0, 1)), ('g', (2, 1))],  # Yellow-Green
+            [('y', (1, 2)), ('r', (2, 1))],  # Yellow-Red
+            [('y', (2, 1)), ('b', (2, 1))],  # Yellow-Blue
+            [('y', (1, 0)), ('o', (2, 1))],  # Yellow-Orange
+        ]
+        
+        # Check all corners
+        invalid_corners = []
+        for i, corner in enumerate(corners):
+            colors = self.get_corner(corner)
+            valid, reason = self.is_valid_combination(colors)
+            if not valid:
+                invalid_corners.append((i, corner, colors, reason))
+        
+        # Check all edges
+        invalid_edges = []
+        for i, edge in enumerate(edges):
+            colors = self.get_edge(edge)
+            valid, reason = self.is_valid_combination(colors)
+            if not valid:
+                invalid_edges.append((i, edge, colors, reason))
+        
+        return invalid_corners, invalid_edges
 
 class CubeVisualizer:
     """A Tkinter-based visualizer for the Rubik's Cube."""
@@ -189,7 +241,7 @@ class CubeVisualizer:
     def __init__(self, root):
         self.root = root
         self.root.title("Rubik's Cube Solver")
-        self.root.geometry("800x600")
+        self.root.geometry("800x700")
         
         # Set up the main frame
         self.main_frame = Frame(root)
@@ -207,9 +259,32 @@ class CubeVisualizer:
         self.move_label = Label(self.main_frame, text="", font=("Arial", 12))
         self.move_label.pack(pady=5)
         
+        # Set up the validation results label
+        self.validation_label = Label(self.main_frame, text="", font=("Arial", 10), wraplength=700)
+        self.validation_label.pack(pady=5)
+        
         # Set up the control buttons
         self.button_frame = Frame(self.main_frame)
         self.button_frame.pack(pady=10)
+        
+        # Set up the speed control
+        self.speed_frame = Frame(self.main_frame)
+        self.speed_frame.pack(pady=5)
+        
+        self.speed_label = Label(self.speed_frame, text="Animation Speed:", font=("Arial", 10))
+        self.speed_label.pack(side=tk.LEFT, padx=5)
+        
+        self.speed_var = StringVar(root)
+        self.speed_var.set("3")  # default value
+        
+        self.speed_menu = OptionMenu(self.speed_frame, self.speed_var, "1", "2", "3", "5", "10")
+        self.speed_menu.pack(side=tk.LEFT, padx=5)
+        
+        self.speed_unit_label = Label(self.speed_frame, text="seconds", font=("Arial", 10))
+        self.speed_unit_label.pack(side=tk.LEFT, padx=5)
+        
+        self.validate_button = Button(self.button_frame, text="Validate Cube", command=self.validate_cube)
+        self.validate_button.pack(side=tk.LEFT, padx=5)
         
         self.start_button = Button(self.button_frame, text="Start Solving", command=self.start_solving)
         self.start_button.pack(side=tk.LEFT, padx=5)
@@ -236,7 +311,8 @@ class CubeVisualizer:
             'b': 'blue'
         }
         
-        # Set up the positions for each face in the net layout
+        # Set up the positions for each face in the net layout with white at center
+        # Standard layout: white on top, green on front, red on right, blue on back, orange on left, yellow on bottom
         self.positions = {
             'w': (3, 0),  # White on top
             'o': (0, 3),  # Orange on left
@@ -294,7 +370,7 @@ class CubeVisualizer:
         
         # Draw the initial cube state
         self.draw_cube()
-        self.status_label.config(text="Cube initialized. Press 'Start Solving' to begin.")
+        self.status_label.config(text="Cube initialized. Press 'Validate Cube' to check if it's solvable.")
     
     def draw_cube(self):
         """Draw the current cube state on the canvas."""
@@ -342,6 +418,35 @@ class CubeVisualizer:
         # Update the canvas
         self.canvas.update()
     
+    def validate_cube(self):
+        """Validate the cube to check if it's solvable."""
+        invalid_corners, invalid_edges = self.cube.validate_cube()
+        
+        if not invalid_corners and not invalid_edges:
+            self.validation_label.config(text="Cube is valid and solvable!", fg="green")
+            self.start_button.config(state=tk.NORMAL)
+        else:
+            validation_text = "Cube has validation errors:\n"
+            
+            if invalid_corners:
+                validation_text += f"Invalid corners ({len(invalid_corners)}):\n"
+                for i, corner, colors, reason in invalid_corners[:3]:  # Show first 3 for brevity
+                    validation_text += f"- Corner {i+1}: {colors} - {reason}\n"
+                if len(invalid_corners) > 3:
+                    validation_text += f"...and {len(invalid_corners) - 3} more\n"
+            
+            if invalid_edges:
+                validation_text += f"Invalid edges ({len(invalid_edges)}):\n"
+                for i, edge, colors, reason in invalid_edges[:3]:  # Show first 3 for brevity
+                    validation_text += f"- Edge {i+1}: {colors} - {reason}\n"
+                if len(invalid_edges) > 3:
+                    validation_text += f"...and {len(invalid_edges) - 3} more\n"
+            
+            validation_text += "\nThe cube may not be solvable with the current configuration."
+            
+            self.validation_label.config(text=validation_text, fg="red")
+            self.start_button.config(state=tk.DISABLED)
+    
     def start_solving(self):
         """Start the solving process."""
         if not self.solving_in_progress:
@@ -378,8 +483,11 @@ class CubeVisualizer:
                 else:
                     self.move_label.config(text="")
                 
-                # Schedule the next step with a 3-second delay
-                self.root.after(3000, self.continue_solving)  # 3000ms = 3 seconds
+                # Get the delay from the speed dropdown (in seconds)
+                delay = int(self.speed_var.get()) * 1000  # Convert to milliseconds
+                
+                # Schedule the next step
+                self.root.after(delay, self.continue_solving)
             
             except StopIteration:
                 # Solving is complete
@@ -424,8 +532,9 @@ class CubeVisualizer:
         self.solver = None
         self.start_button.config(state=tk.NORMAL)
         self.step_button.config(state=tk.DISABLED)
-        self.status_label.config(text="Cube reset. Press 'Start Solving' to begin.")
+        self.status_label.config(text="Cube reset. Press 'Validate Cube' to check if it's solvable.")
         self.move_label.config(text="")
+        self.validation_label.config(text="")
         
         # Re-initialize the cube
         self.initialize_cube()
@@ -464,6 +573,11 @@ class CubeVisualizer:
         
         # Initial status
         yield "Initial cube state", None, cube
+        
+        # Validate the cube first
+        invalid_corners, invalid_edges = cube.validate_cube()
+        if invalid_corners or invalid_edges:
+            yield "Warning: Cube has validation errors and may not be solvable", None, cube
         
         # Step 1: Fix the white corners one by one
         for i, corner in enumerate(corners):
