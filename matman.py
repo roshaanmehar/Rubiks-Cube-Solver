@@ -1,153 +1,606 @@
 import numpy as np
+import copy
+from collections import deque, Counter
+import random
+import time
 
 def strmat(matstring):
     """Converts a string representation of a matrix to a NumPy array."""
     matrix = [list(row.strip()) for row in matstring.strip().split("\n")]
     return np.array(matrix)
 
-def analyze_cube_state(cube_string):
-    """Analyze the cube state string to identify potential issues."""
-    # The cube string is in URFDLB/wrgyob order
-    # Each face has 9 stickers, so we can split the string into faces
-    w_face = cube_string[0:9]
-    r_face = cube_string[9:18]
-    g_face = cube_string[18:27]
-    y_face = cube_string[27:36]
-    o_face = cube_string[36:45]
-    b_face = cube_string[45:54]
+class CubeState:
+    """Represents the state of a Rubik's cube with efficient operations."""
     
-    # Count occurrences of each color
-    color_counts = {
-        'w': cube_string.count('w'),
-        'r': cube_string.count('r'),
-        'g': cube_string.count('g'),
-        'y': cube_string.count('y'),
-        'o': cube_string.count('o'),
-        'b': cube_string.count('b')
-    }
-    
-    print("Color distribution analysis:")
-    for color, count in color_counts.items():
-        print(f"  {color}: {count} {'(correct)' if count == 9 else '(INCORRECT - should be 9)'}")
-    
-    # Check center pieces (should match the face name)
-    centers = {
-        'w': w_face[4],
-        'r': r_face[4],
-        'g': g_face[4],
-        'y': y_face[4],
-        'o': o_face[4],
-        'b': b_face[4]
-    }
-    
-    print("\nCenter piece analysis:")
-    for face, center in centers.items():
-        print(f"  {face} face center: {center} {'(correct)' if face == center else '(INCORRECT - should be ' + face + ')'}")
-    
-    # Analyze corner and edge pieces
-    print("\nPotential issues with the cube configuration:")
-    
-    # Check for impossible corner configurations
-    corners = [
-        # Extract corners from the cube string
-        # This is a simplified version - a full implementation would map the string indices to actual corners
-        (w_face[0], o_face[2], b_face[0]),  # WOB
-        (w_face[2], r_face[0], b_face[2]),  # WRB
-        (w_face[8], r_face[2], g_face[0]),  # WRG
-        (w_face[6], g_face[2], o_face[0]),  # WGO
-        (y_face[0], g_face[6], o_face[8]),  # YGO
-        (y_face[2], r_face[8], g_face[8]),  # YRG
-        (y_face[8], b_face[8], r_face[6]),  # YBR
-        (y_face[6], o_face[6], b_face[6])   # YOB
-    ]
-    
-    corner_names = [
-        "White-Orange-Blue (WOB)",
-        "White-Red-Blue (WRB)",
-        "White-Green-Red (WRG)",
-        "White-Orange-Green (WGO)",
-        "Yellow-Green-Orange (YGO)",
-        "Yellow-Red-Green (YRG)",
-        "Yellow-Blue-Red (YBR)",
-        "Yellow-Orange-Blue (YOB)"
-    ]
-    
-    # Check corners for opposite colors
-    opposites = {
-        'w': 'y', 'y': 'w',
-        'r': 'o', 'o': 'r',
-        'g': 'b', 'b': 'g'
-    }
-    
-    print("\nCorner analysis:")
-    for i, (corner, name) in enumerate(zip(corners, corner_names)):
-        # Check for opposite colors
-        has_opposites = False
-        for j in range(len(corner)):
-            for k in range(j+1, len(corner)):
-                if opposites.get(corner[j]) == corner[k]:
-                    has_opposites = True
-                    print(f"  Corner {i+1} ({name}): Contains opposite colors {corner[j]} and {corner[k]}")
+    def __init__(self, face_matrices=None):
+        """Initialize a cube state from face matrices or create a solved cube."""
+        if face_matrices:
+            self.faces = face_matrices
+        else:
+            # Create a solved cube
+            self.faces = {
+                'w': np.full((3, 3), 'w'),
+                'r': np.full((3, 3), 'r'),
+                'g': np.full((3, 3), 'g'),
+                'y': np.full((3, 3), 'y'),
+                'o': np.full((3, 3), 'o'),
+                'b': np.full((3, 3), 'b')
+            }
         
-        # Check for duplicate colors
-        if len(set(corner)) < len(corner):
-            print(f"  Corner {i+1} ({name}): Contains duplicate colors {corner}")
+        # Define face adjacency (which faces are adjacent to each face and how they connect)
+        self.adjacency = {
+            'w': [('b', 0, False), ('r', 0, False), ('g', 0, False), ('o', 0, False)],  # top rows of adjacent faces
+            'y': [('g', 2, False), ('r', 2, False), ('b', 2, False), ('o', 2, False)],  # bottom rows of adjacent faces
+            'r': [('w', None, 1), ('b', None, 3), ('y', None, 1), ('g', None, 3)],      # right, left, right, left cols
+            'o': [('w', None, 3), ('g', None, 1), ('y', None, 3), ('b', None, 1)],      # left, right, left, right cols
+            'g': [('w', 2, False), ('r', None, 1), ('y', 0, True), ('o', None, 3)],     # complex connections
+            'b': [('w', 0, True), ('o', None, 1), ('y', 2, True), ('r', None, 3)]       # complex connections
+        }
     
-    # Suggest improvements to the solving algorithm
-    print("\nSuggested improvements to the solving algorithm:")
-    print("1. Increase the maximum search depth in find_optimal_moves() (currently 5)")
-    print("2. Implement a more efficient state representation to reduce memory usage")
-    print("3. Add a heuristic function to guide the search toward valid states")
-    print("4. Consider using a more specialized Rubik's cube solving algorithm like Kociemba's algorithm")
-    print("5. Implement proper handling of edge piece rotations when rotating faces")
-    print("6. Add validation for the parity of the cube (some configurations are impossible)")
-
-# Analyze the provided cube string
-cube_string = "brgowoowrwwobrybgwyogrgorybwbrrybrroowgyobygybgwybwggy"
-analyze_cube_state(cube_string)
-
-# Demonstrate a simple fix for the search algorithm
-print("\nExample improvement to the search algorithm:")
-print("""
-def find_optimal_moves(face_matrices, max_depth=10):
-    # ... existing code ...
+    def copy(self):
+        """Create a deep copy of the cube state."""
+        return CubeState({face: np.copy(matrix) for face, matrix in self.faces.items()})
     
-    # Use a priority queue instead of a regular queue
-    from heapq import heappush, heappop
+    def to_string(self):
+        """Convert the cube to a string representation in URFDLB (wrgyob) order."""
+        result = ""
+        for face in ['w', 'r', 'g', 'y', 'o', 'b']:
+            for i in range(3):
+                for j in range(3):
+                    result += self.faces[face][i, j]
+        return result
     
-    # Initialize priority queue with the initial state
-    # Format: (priority, state_id, (state, moves))
-    queue = [(0, 0, (face_matrices, []))]
-    state_id = 1  # To distinguish states with the same priority
-    
-    # ... existing code ...
-    
-    while queue and len(queue[0][2][1]) < max_depth:
-        _, _, (state, moves) = heappop(queue)
+    def rotate_face(self, face, direction='cw'):
+        """
+        Rotate a face of the cube and update adjacent faces.
         
-        # ... existing code ...
+        Args:
+            face: The face to rotate ('w', 'r', 'g', 'y', 'o', 'b')
+            direction: 'cw' for clockwise, 'ccw' for counter-clockwise, '2' for 180 degrees
+        """
+        # Create a copy of the current state
+        new_state = self.copy()
         
-        # Add heuristic: count invalid corners and edges
-        def heuristic(state):
-            invalid_count = 0
-            corners, corner_colors, edges, edge_colors = get_all_corners_and_edges(state)
+        # Rotate the specified face
+        if direction == 'cw':
+            new_state.faces[face] = np.rot90(self.faces[face], k=3)
+        elif direction == 'ccw':
+            new_state.faces[face] = np.rot90(self.faces[face], k=1)
+        elif direction == '2':
+            new_state.faces[face] = np.rot90(self.faces[face], k=2)
+        
+        # Update adjacent faces
+        adjacent = self.adjacency[face]
+        
+        # Get the values from adjacent faces that need to be rotated
+        values = []
+        for adj_face, idx, reverse in adjacent:
+            if idx is not None:  # Row
+                row = self.faces[adj_face][idx, :].copy()
+                if reverse:
+                    row = row[::-1]
+                values.append(row)
+            else:  # Column
+                col = self.faces[adj_face][:, idx % 4].copy()
+                if reverse:
+                    col = col[::-1]
+                values.append(col)
+        
+        # Rotate the values based on direction
+        if direction == 'cw':
+            values = [values[-1]] + values[:-1]
+        elif direction == 'ccw':
+            values = values[1:] + [values[0]]
+        elif direction == '2':
+            values = values[2:] + values[:2]
+        
+        # Update the adjacent faces with rotated values
+        for i, (adj_face, idx, reverse) in enumerate(adjacent):
+            val = values[i]
+            if reverse:
+                val = val[::-1]
             
-            for colors in corner_colors:
-                valid, _ = is_valid_combination(colors)
-                if not valid:
-                    invalid_count += 1
-                    
-            for colors in edge_colors:
-                valid, _ = is_valid_combination(colors)
-                if not valid:
-                    invalid_count += 1
-                    
-            return invalid_count
+            if idx is not None:  # Row
+                new_state.faces[adj_face][idx, :] = val
+            else:  # Column
+                new_state.faces[adj_face][:, i % 4] = val
         
-        # ... existing code for generating new states ...
+        return new_state
+    
+    def get_corner(self, corner_indices):
+        """Get the colors at a specific corner across multiple faces."""
+        colors = []
+        for face, indices in corner_indices:
+            i, j = indices
+            colors.append(self.faces[face][i, j])
+        return colors
+    
+    def get_edge(self, edge_indices):
+        """Get the colors at a specific edge across multiple faces."""
+        colors = []
+        for face, indices in edge_indices:
+            i, j = indices
+            colors.append(self.faces[face][i, j])
+        return colors
+    
+    def get_all_corners_and_edges(self):
+        """Get all corners and edges of the cube with their current colors."""
+        # Define all corner and edge positions
+        corners = [
+            # Top layer corners
+            [('w', (0, 0)), ('o', (0, 2)), ('b', (0, 0))],  # w-o-b
+            [('w', (0, 2)), ('r', (0, 0)), ('b', (0, 2))],  # w-r-b
+            [('w', (2, 2)), ('g', (0, 2)), ('r', (0, 2))],  # w-g-r
+            [('w', (2, 0)), ('o', (0, 0)), ('g', (0, 0))],  # w-o-g
+            
+            # Bottom layer corners
+            [('y', (0, 0)), ('g', (2, 0)), ('o', (2, 2))],  # y-g-o
+            [('y', (0, 2)), ('r', (2, 2)), ('g', (2, 2))],  # y-r-g
+            [('y', (2, 2)), ('b', (2, 2)), ('r', (2, 0))],  # y-b-r
+            [('y', (2, 0)), ('o', (2, 0)), ('b', (2, 0))],  # y-o-b
+        ]
         
-        # Add to queue with priority based on heuristic
-        priority = len(moves) + heuristic(new_state)  # A* search
-        heappush(queue, (priority, state_id, (new_state, moves + [(face, direction)])))
-        state_id += 1
-""")
+        edges = [
+            # Top layer edges
+            [('w', (0, 1)), ('b', (0, 1))],  # w-b
+            [('w', (1, 2)), ('r', (0, 1))],  # w-r
+            [('w', (2, 1)), ('g', (0, 1))],  # w-g
+            [('w', (1, 0)), ('o', (0, 1))],  # w-o
+            
+            # Middle layer edges
+            [('b', (1, 2)), ('r', (1, 0))],  # b-r
+            [('r', (1, 2)), ('g', (1, 2))],  # r-g
+            [('g', (1, 0)), ('o', (1, 2))],  # g-o
+            [('o', (1, 0)), ('b', (1, 0))],  # o-b
+            
+            # Bottom layer edges
+            [('y', (0, 1)), ('g', (2, 1))],  # y-g
+            [('y', (1, 2)), ('r', (2, 1))],  # y-r
+            [('y', (2, 1)), ('b', (2, 1))],  # y-b
+            [('y', (1, 0)), ('o', (2, 1))],  # y-o
+        ]
+        
+        corner_colors = [self.get_corner(corner) for corner in corners]
+        edge_colors = [self.get_edge(edge) for edge in edges]
+        
+        return corners, corner_colors, edges, edge_colors
+    
+    def is_valid(self, verbose=False):
+        """Check if the cube state is valid."""
+        # Check if each color appears exactly 9 times
+        all_colors = []
+        for face in self.faces.values():
+            all_colors.extend(face.flatten())
+        
+        color_counts = Counter(all_colors)
+        if not all(count == 9 for count in color_counts.values()):
+            if verbose:
+                print("Invalid color distribution:", color_counts)
+            return False
+        
+        # Check if center pieces match the expected colors
+        centers = {
+            'w': self.faces['w'][1, 1],
+            'r': self.faces['r'][1, 1],
+            'g': self.faces['g'][1, 1],
+            'y': self.faces['y'][1, 1],
+            'o': self.faces['o'][1, 1],
+            'b': self.faces['b'][1, 1]
+        }
+        
+        if not all(centers[face] == face for face in centers):
+            if verbose:
+                print("Invalid center pieces:", centers)
+            return False
+        
+        # Check corners and edges
+        _, corner_colors, _, edge_colors = self.get_all_corners_and_edges()
+        
+        # Check for invalid corners
+        for i, colors in enumerate(corner_colors):
+            if not is_valid_combination(colors):
+                if verbose:
+                    print(f"Invalid corner {i+1}: {colors}")
+                return False
+        
+        # Check for invalid edges
+        for i, colors in enumerate(edge_colors):
+            if not is_valid_combination(colors):
+                if verbose:
+                    print(f"Invalid edge {i+1}: {colors}")
+                return False
+        
+        return True
+    
+    def is_solved(self):
+        """Check if the cube is solved (each face has a single color)."""
+        for face, matrix in self.faces.items():
+            if not np.all(matrix == face):
+                return False
+        return True
+    
+    def apply_move_sequence(self, moves):
+        """Apply a sequence of moves to the cube."""
+        state = self
+        for face, direction in moves:
+            state = state.rotate_face(face, direction)
+        return state
+    
+    def scramble(self, num_moves=20):
+        """Scramble the cube with random moves."""
+        faces = ['w', 'r', 'g', 'y', 'o', 'b']
+        directions = ['cw', 'ccw', '2']
+        
+        state = self
+        moves = []
+        
+        for _ in range(num_moves):
+            face = random.choice(faces)
+            direction = random.choice(directions)
+            state = state.rotate_face(face, direction)
+            moves.append((face, direction))
+        
+        return state, moves
+
+def is_valid_combination(colors):
+    """Check if a combination of colors is valid (no opposites or duplicates)."""
+    opposites = {
+        'y': 'w', 'w': 'y',
+        'b': 'g', 'g': 'b',
+        'o': 'r', 'r': 'o'
+    }
+    
+    # Check for duplicates
+    if len(colors) != len(set(colors)):
+        return False
+    
+    # Check for opposites
+    for i in range(len(colors)):
+        for j in range(i + 1, len(colors)):
+            if opposites.get(colors[i]) == colors[j]:
+                return False
+    
+    return True
+
+def kociemba_phase1(cube_state, max_depth=10, timeout=30):
+    """
+    First phase of Kociemba's algorithm: Orient edges and corners.
+    
+    This is a simplified version that focuses on fixing invalid corners and edges.
+    """
+    print("Starting Kociemba Phase 1...")
+    
+    # Define possible moves
+    faces = ['w', 'r', 'g', 'y', 'o', 'b']
+    directions = ['cw', 'ccw', '2']
+    
+    # Initialize queue with the initial state
+    start_time = time.time()
+    queue = deque([(cube_state, [])])  # (state, moves)
+    visited = set()
+    
+    # Convert state to a hashable format for visited set
+    def state_to_string(state):
+        return state.to_string()
+    
+    # Add initial state to visited
+    visited.add(state_to_string(cube_state))
+    
+    # Define a heuristic function to guide the search
+    def heuristic(state):
+        _, corner_colors, _, edge_colors = state.get_all_corners_and_edges()
+        invalid_count = 0
+        
+        for colors in corner_colors:
+            if not is_valid_combination(colors):
+                invalid_count += 1
+        
+        for colors in edge_colors:
+            if not is_valid_combination(colors):
+                invalid_count += 1
+        
+        return invalid_count
+    
+    # Initial heuristic value
+    initial_h = heuristic(cube_state)
+    print(f"Initial invalid pieces: {initial_h}")
+    
+    # Track best state found so far
+    best_state = cube_state
+    best_moves = []
+    best_h = initial_h
+    
+    while queue and time.time() - start_time < timeout:
+        state, moves = queue.popleft()
+        
+        # Check if we've reached the maximum depth
+        if len(moves) >= max_depth:
+            continue
+        
+        # Calculate heuristic for current state
+        h = heuristic(state)
+        
+        # Update best state if this one is better
+        if h < best_h:
+            best_h = h
+            best_state = state
+            best_moves = moves
+            print(f"Found better state with {h} invalid pieces after {len(moves)} moves")
+            
+            # If all pieces are valid, we're done with Phase 1
+            if h == 0:
+                print(f"Phase 1 complete! All pieces are valid after {len(moves)} moves")
+                return state, moves
+        
+        # Try all possible moves
+        for face in faces:
+            for direction in directions:
+                # Apply move
+                new_state = state.rotate_face(face, direction)
+                
+                # Generate a hashable representation of the new state
+                state_str = state_to_string(new_state)
+                
+                # Skip if we've seen this state before
+                if state_str in visited:
+                    continue
+                
+                # Add to queue and visited
+                visited.add(state_str)
+                queue.append((new_state, moves + [(face, direction)]))
+        
+        # Print progress occasionally
+        if len(visited) % 1000 == 0:
+            elapsed = time.time() - start_time
+            print(f"Searched {len(visited)} states in {elapsed:.2f}s, current depth: {len(moves)}")
+    
+    print(f"Phase 1 search ended. Best state has {best_h} invalid pieces after {len(best_moves)} moves")
+    return best_state, best_moves
+
+def kociemba_phase2(cube_state, max_depth=10, timeout=30):
+    """
+    Second phase of Kociemba's algorithm: Solve the cube while preserving orientation.
+    
+    This is a simplified version that tries to solve the cube completely.
+    """
+    print("Starting Kociemba Phase 2...")
+    
+    # Define possible moves
+    # In true Kociemba Phase 2, only certain moves are allowed to preserve orientation
+    # For simplicity, we'll allow all moves but prioritize those that maintain valid pieces
+    faces = ['w', 'r', 'g', 'y', 'o', 'b']
+    directions = ['cw', 'ccw', '2']
+    
+    # Initialize queue with the initial state
+    start_time = time.time()
+    queue = deque([(cube_state, [])])  # (state, moves)
+    visited = set()
+    
+    # Convert state to a hashable format for visited set
+    def state_to_string(state):
+        return state.to_string()
+    
+    # Add initial state to visited
+    visited.add(state_to_string(cube_state))
+    
+    # Define a heuristic function to guide the search
+    def heuristic(state):
+        # Count how many stickers are in their correct position
+        correct_count = 0
+        for face, matrix in state.faces.items():
+            correct_count += np.sum(matrix == face)
+        
+        # Return the inverse (lower is better)
+        return 54 - correct_count
+    
+    # Initial heuristic value
+    initial_h = heuristic(cube_state)
+    print(f"Initial incorrect stickers: {initial_h}")
+    
+    # Track best state found so far
+    best_state = cube_state
+    best_moves = []
+    best_h = initial_h
+    
+    while queue and time.time() - start_time < timeout:
+        state, moves = queue.popleft()
+        
+        # Check if we've reached the maximum depth
+        if len(moves) >= max_depth:
+            continue
+        
+        # Calculate heuristic for current state
+        h = heuristic(state)
+        
+        # Update best state if this one is better
+        if h < best_h:
+            best_h = h
+            best_state = state
+            best_moves = moves
+            print(f"Found better state with {h} incorrect stickers after {len(moves)} moves")
+            
+            # If the cube is solved, we're done
+            if h == 0:
+                print(f"Cube solved after {len(moves)} moves!")
+                return state, moves
+        
+        # Try all possible moves
+        for face in faces:
+            for direction in directions:
+                # Apply move
+                new_state = state.rotate_face(face, direction)
+                
+                # Skip if the move creates invalid pieces
+                _, corner_colors, _, edge_colors = new_state.get_all_corners_and_edges()
+                invalid = False
+                
+                for colors in corner_colors + edge_colors:
+                    if not is_valid_combination(colors):
+                        invalid = True
+                        break
+                
+                if invalid:
+                    continue
+                
+                # Generate a hashable representation of the new state
+                state_str = state_to_string(new_state)
+                
+                # Skip if we've seen this state before
+                if state_str in visited:
+                    continue
+                
+                # Add to queue and visited
+                visited.add(state_str)
+                queue.append((new_state, moves + [(face, direction)]))
+        
+        # Print progress occasionally
+        if len(visited) % 1000 == 0:
+            elapsed = time.time() - start_time
+            print(f"Searched {len(visited)} states in {elapsed:.2f}s, current depth: {len(moves)}")
+    
+    print(f"Phase 2 search ended. Best state has {best_h} incorrect stickers after {len(best_moves)} moves")
+    return best_state, best_moves
+
+def solve_cube(cube_state, phase1_depth=8, phase2_depth=12, timeout=30):
+    """Solve the cube using Kociemba's two-phase algorithm."""
+    print("Starting cube solving process...")
+    
+    # Phase 1: Orient edges and corners
+    phase1_state, phase1_moves = kociemba_phase1(cube_state, max_depth=phase1_depth, timeout=timeout)
+    
+    # Phase 2: Solve the cube while preserving orientation
+    phase2_state, phase2_moves = kociemba_phase2(phase1_state, max_depth=phase2_depth, timeout=timeout)
+    
+    # Combine the moves from both phases
+    all_moves = phase1_moves + phase2_moves
+    final_state = cube_state.apply_move_sequence(all_moves)
+    
+    return final_state, all_moves
+
+def print_move_sequence(moves):
+    """Print a sequence of moves in a readable format."""
+    if not moves:
+        print("No moves to display")
+        return
+    
+    print("\nSolution sequence:")
+    for i, (face, direction) in enumerate(moves):
+        dir_symbol = {
+            'cw': '',
+            'ccw': "'",
+            '2': '2'
+        }[direction]
+        print(f"{i+1}. {face.upper()}{dir_symbol}", end=" ")
+        if (i + 1) % 10 == 0:
+            print()  # New line every 10 moves
+    print("\n")
+
+def visualize_cube(cube_state):
+    """Generate a text visualization of the cube."""
+    # Create a template for the visualization
+    template = """
+                  |--------------|
+                  | {w00} | {w01} | {w02} |
+                  |--------------|
+                  | {w10} | {w11} | {w12} |
+                  |--------------|
+                  | {w20} | {w21} | {w22} |
+                  |--------------|
+|--------------|--------------|--------------|--------------|
+| {o00} | {o01} | {o02} | {g00} | {g01} | {g02} | {r00} | {r01} | {r02} | {b00} | {b01} | {b02} |
+|--------------|--------------|--------------|--------------|
+| {o10} | {o11} | {o12} | {g10} | {g11} | {g12} | {r10} | {r11} | {r12} | {b10} | {b11} | {b12} |
+|--------------|--------------|--------------|--------------|
+| {o20} | {o21} | {o22} | {g20} | {g21} | {g22} | {r20} | {r21} | {r22} | {b20} | {b21} | {b22} |
+|--------------|--------------|--------------|--------------|
+                  |--------------|
+                  | {y00} | {y01} | {y02} |
+                  |--------------|
+                  | {y10} | {y11} | {y12} |
+                  |--------------|
+                  | {y20} | {y21} | {y22} |
+                  |--------------|
+    """
+    
+    # Create a dictionary to map template placeholders to cube values
+    mapping = {}
+    for face in cube_state.faces:
+        for i in range(3):
+            for j in range(3):
+                mapping[f"{face}{i}{j}"] = cube_state.faces[face][i, j]
+    
+    # Fill in the template
+    return template.format(**mapping)
+
+def main():
+    # Parse the input matrices
+    red_mat = strmat("""wwo
+                     bry
+                     bgw""")
+
+    blue_mat = strmat("""bgw
+                      ybw
+                      ggy""")
+
+    orange_mat = strmat("""owg
+                        yob
+                        ygy""")
+
+    white_mat = strmat("""brg
+                       owo
+                       owr""")
+
+    yellow_mat = strmat("""wbr
+                        ryb
+                        rro""")
+
+    green_mat = strmat("""yog
+                       rgo
+                       ryb""")
+    
+    # Create a dictionary of face matrices
+    face_matrices = {
+        'w': white_mat,
+        'r': red_mat,
+        'g': green_mat,
+        'y': yellow_mat,
+        'o': orange_mat,
+        'b': blue_mat
+    }
+    
+    # Create a cube state from the matrices
+    cube = CubeState(face_matrices)
+    
+    # Display the initial state
+    print("Initial cube state:")
+    print(visualize_cube(cube))
+    
+    # Validate the cube
+    if not cube.is_valid(verbose=True):
+        print("Warning: The cube configuration appears to be invalid.")
+        print("Attempting to solve anyway...")
+    
+    # Try to solve the cube
+    solved_cube, solution_moves = solve_cube(cube, phase1_depth=8, phase2_depth=12, timeout=60)
+    
+    # Print the solution
+    if solution_moves:
+        print_move_sequence(solution_moves)
+        print(f"Solution found with {len(solution_moves)} moves!")
+    else:
+        print("Could not find a complete solution.")
+    
+    # Check if the solution is valid
+    if solved_cube.is_solved():
+        print("The solution successfully solves the cube!")
+    else:
+        print("The solution does not completely solve the cube.")
+        print("Final cube state:")
+        print(visualize_cube(solved_cube))
+    
+    # Generate the final string
+    final_string = solved_cube.to_string()
+    print(f"Final string representation (URFDLB/wrgyob order): {final_string}")
+
+if __name__ == "__main__":
+    main()
