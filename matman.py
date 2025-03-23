@@ -568,29 +568,29 @@ def visualize_cube(cube_state):
 
 def main():
     # Parse the input matrices
-    red_mat = strmat("""wwo
-                     bry
-                     bgw""")
+    red_mat = strmat("""bbb
+                     rrr
+                     rrr""")
 
-    blue_mat = strmat("""bgw
-                      ybw
-                      ggy""")
+    blue_mat = strmat("""ooo
+                      bbb
+                      bbb""")
 
-    orange_mat = strmat("""owg
-                        yob
-                        ygy""")
+    orange_mat = strmat("""ggg
+                        ooo
+                        ooo""")
 
-    white_mat = strmat("""brg
-                       owo
-                       owr""")
+    white_mat = strmat("""www
+                       www
+                       www""")
 
-    yellow_mat = strmat("""wbr
-                        ryb
-                        rro""")
+    yellow_mat = strmat("""yyy
+                        yyy
+                        yyy""")
 
-    green_mat = strmat("""yog
-                       rgo
-                       ryb""")
+    green_mat = strmat("""rrr
+                       ggg
+                       ggg""")
     
     # Create a dictionary of face matrices
     face_matrices = {
