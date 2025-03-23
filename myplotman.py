@@ -183,51 +183,36 @@ class CubeState:
         
         return True, "Valid"
     
-    def validate_cube(self):
-        """Validate the entire cube to check if it's solvable."""
-        # Define all corners and edges
-        corners = [
-            # White-face corners
+    def validate_white_face(self):
+        """Validate only the white face and its adjacent pieces."""
+        # Define white corners and edges
+        white_corners = [
+            # White-face corners (clockwise from top-left)
             [('w', (0, 0)), ('o', (0, 2)), ('b', (0, 0))],  # White-Orange-Blue
             [('w', (0, 2)), ('r', (0, 0)), ('b', (0, 2))],  # White-Red-Blue
             [('w', (2, 2)), ('r', (0, 2)), ('g', (0, 2))],  # White-Red-Green
             [('w', (2, 0)), ('o', (0, 0)), ('g', (0, 0))],  # White-Orange-Green
-            # Yellow-face corners
-            [('y', (0, 0)), ('g', (2, 0)), ('o', (2, 2))],  # Yellow-Green-Orange
-            [('y', (0, 2)), ('r', (2, 2)), ('g', (2, 2))],  # Yellow-Red-Green
-            [('y', (2, 2)), ('b', (2, 2)), ('r', (2, 0))],  # Yellow-Blue-Red
-            [('y', (2, 0)), ('o', (2, 0)), ('b', (2, 0))],  # Yellow-Orange-Blue
         ]
         
-        edges = [
-            # White-face edges
+        white_edges = [
+            # White-face edges (clockwise from top)
             [('w', (0, 1)), ('b', (0, 1))],  # White-Blue
             [('w', (1, 2)), ('r', (0, 1))],  # White-Red
             [('w', (2, 1)), ('g', (0, 1))],  # White-Green
             [('w', (1, 0)), ('o', (0, 1))],  # White-Orange
-            # Middle layer edges
-            [('b', (1, 2)), ('r', (1, 0))],  # Blue-Red
-            [('r', (1, 2)), ('g', (1, 2))],  # Red-Green
-            [('g', (1, 0)), ('o', (1, 2))],  # Green-Orange
-            [('o', (1, 0)), ('b', (1, 0))],  # Orange-Blue
-            # Yellow-face edges
-            [('y', (0, 1)), ('g', (2, 1))],  # Yellow-Green
-            [('y', (1, 2)), ('r', (2, 1))],  # Yellow-Red
-            [('y', (2, 1)), ('b', (2, 1))],  # Yellow-Blue
-            [('y', (1, 0)), ('o', (2, 1))],  # Yellow-Orange
         ]
         
-        # Check all corners
+        # Check white corners
         invalid_corners = []
-        for i, corner in enumerate(corners):
+        for i, corner in enumerate(white_corners):
             colors = self.get_corner(corner)
             valid, reason = self.is_valid_combination(colors)
             if not valid:
                 invalid_corners.append((i, corner, colors, reason))
         
-        # Check all edges
+        # Check white edges
         invalid_edges = []
-        for i, edge in enumerate(edges):
+        for i, edge in enumerate(white_edges):
             colors = self.get_edge(edge)
             valid, reason = self.is_valid_combination(colors)
             if not valid:
@@ -240,7 +225,7 @@ class CubeVisualizer:
     
     def __init__(self, root):
         self.root = root
-        self.root.title("Rubik's Cube Solver")
+        self.root.title("Rubik's Cube White Face Solver")
         self.root.geometry("800x700")
         
         # Set up the main frame
@@ -283,10 +268,10 @@ class CubeVisualizer:
         self.speed_unit_label = Label(self.speed_frame, text="seconds", font=("Arial", 10))
         self.speed_unit_label.pack(side=tk.LEFT, padx=5)
         
-        self.validate_button = Button(self.button_frame, text="Validate Cube", command=self.validate_cube)
+        self.validate_button = Button(self.button_frame, text="Validate White Face", command=self.validate_cube)
         self.validate_button.pack(side=tk.LEFT, padx=5)
         
-        self.start_button = Button(self.button_frame, text="Start Solving", command=self.start_solving)
+        self.start_button = Button(self.button_frame, text="Start Solving White", command=self.start_solving)
         self.start_button.pack(side=tk.LEFT, padx=5)
         
         self.step_button = Button(self.button_frame, text="Step", command=self.step_solve, state=tk.DISABLED)
@@ -370,7 +355,7 @@ class CubeVisualizer:
         
         # Draw the initial cube state
         self.draw_cube()
-        self.status_label.config(text="Cube initialized. Press 'Validate Cube' to check if it's solvable.")
+        self.status_label.config(text="Cube initialized. Press 'Validate White Face' to check if it's solvable.")
     
     def draw_cube(self):
         """Draw the current cube state on the canvas."""
@@ -419,30 +404,26 @@ class CubeVisualizer:
         self.canvas.update()
     
     def validate_cube(self):
-        """Validate the cube to check if it's solvable."""
-        invalid_corners, invalid_edges = self.cube.validate_cube()
+        """Validate the white face to check if it's solvable."""
+        invalid_corners, invalid_edges = self.cube.validate_white_face()
         
         if not invalid_corners and not invalid_edges:
-            self.validation_label.config(text="Cube is valid and solvable!", fg="green")
+            self.validation_label.config(text="White face is valid and solvable!", fg="green")
             self.start_button.config(state=tk.NORMAL)
         else:
-            validation_text = "Cube has validation errors:\n"
+            validation_text = "White face has validation errors:\n"
             
             if invalid_corners:
-                validation_text += f"Invalid corners ({len(invalid_corners)}):\n"
-                for i, corner, colors, reason in invalid_corners[:3]:  # Show first 3 for brevity
+                validation_text += f"Invalid white corners ({len(invalid_corners)}):\n"
+                for i, corner, colors, reason in invalid_corners:
                     validation_text += f"- Corner {i+1}: {colors} - {reason}\n"
-                if len(invalid_corners) > 3:
-                    validation_text += f"...and {len(invalid_corners) - 3} more\n"
             
             if invalid_edges:
-                validation_text += f"Invalid edges ({len(invalid_edges)}):\n"
-                for i, edge, colors, reason in invalid_edges[:3]:  # Show first 3 for brevity
+                validation_text += f"Invalid white edges ({len(invalid_edges)}):\n"
+                for i, edge, colors, reason in invalid_edges:
                     validation_text += f"- Edge {i+1}: {colors} - {reason}\n"
-                if len(invalid_edges) > 3:
-                    validation_text += f"...and {len(invalid_edges) - 3} more\n"
             
-            validation_text += "\nThe cube may not be solvable with the current configuration."
+            validation_text += "\nThe white face may not be solvable with the current configuration."
             
             self.validation_label.config(text=validation_text, fg="red")
             self.start_button.config(state=tk.DISABLED)
@@ -453,10 +434,10 @@ class CubeVisualizer:
             self.solving_in_progress = True
             self.start_button.config(state=tk.DISABLED)
             self.step_button.config(state=tk.NORMAL)
-            self.status_label.config(text="Solving in progress...")
+            self.status_label.config(text="Solving white face in progress...")
             
             # Create a solver generator
-            self.solver = self.layer_by_layer_solver_generator(self.cube)
+            self.solver = self.white_face_solver_generator(self.cube)
             
             # Start the solving process
             if not self.step_mode:
@@ -492,7 +473,7 @@ class CubeVisualizer:
             except StopIteration:
                 # Solving is complete
                 self.solving_in_progress = False
-                self.status_label.config(text="Solving complete!")
+                self.status_label.config(text="White face solving complete!")
                 self.move_label.config(text="")
                 self.start_button.config(state=tk.DISABLED)
                 self.step_button.config(state=tk.DISABLED)
@@ -521,7 +502,7 @@ class CubeVisualizer:
             except StopIteration:
                 # Solving is complete
                 self.solving_in_progress = False
-                self.status_label.config(text="Solving complete!")
+                self.status_label.config(text="White face solving complete!")
                 self.move_label.config(text="")
                 self.start_button.config(state=tk.DISABLED)
                 self.step_button.config(state=tk.DISABLED)
@@ -532,16 +513,16 @@ class CubeVisualizer:
         self.solver = None
         self.start_button.config(state=tk.NORMAL)
         self.step_button.config(state=tk.DISABLED)
-        self.status_label.config(text="Cube reset. Press 'Validate Cube' to check if it's solvable.")
+        self.status_label.config(text="Cube reset. Press 'Validate White Face' to check if it's solvable.")
         self.move_label.config(text="")
         self.validation_label.config(text="")
         
         # Re-initialize the cube
         self.initialize_cube()
     
-    def layer_by_layer_solver_generator(self, cube):
+    def white_face_solver_generator(self, cube):
         """
-        Generator function that yields each step of the layer-by-layer solving process.
+        Generator function that yields each step of solving the white face.
         
         Args:
             cube: The CubeState object representing the cube
@@ -574,10 +555,10 @@ class CubeVisualizer:
         # Initial status
         yield "Initial cube state", None, cube
         
-        # Validate the cube first
-        invalid_corners, invalid_edges = cube.validate_cube()
+        # Validate the white face first
+        invalid_corners, invalid_edges = cube.validate_white_face()
         if invalid_corners or invalid_edges:
-            yield "Warning: Cube has validation errors and may not be solvable", None, cube
+            yield "Warning: White face has validation errors and may not be solvable", None, cube
         
         # Step 1: Fix the white corners one by one
         for i, corner in enumerate(corners):
@@ -714,255 +695,32 @@ class CubeVisualizer:
                             i = -1  # Will be incremented to 0 in the next iteration
                             break
         
-        # Step 3: Fix the middle layer edges
-        middle_edges = [
-            # Middle layer edges
-            [('b', (1, 2)), ('r', (1, 0))],  # Blue-Red (BR)
-            [('r', (1, 2)), ('g', (1, 2))],  # Red-Green (RG)
-            [('g', (1, 0)), ('o', (1, 2))],  # Green-Orange (GO)
-            [('o', (1, 0)), ('b', (1, 0))],  # Orange-Blue (OB)
-        ]
-        
-        for i, edge in enumerate(middle_edges):
-            edge_name = ["Blue-Red", "Red-Green", "Green-Orange", "Orange-Blue"][i]
-            yield f"Step 3: Working on middle edge {i+1}: {edge_name}", None, cube
-            
-            # Get the current colors at this edge
-            colors = cube.get_edge(edge)
-            valid, reason = cube.is_valid_combination(colors)
-            
-            if not valid:
-                yield f"Middle edge {i+1} is invalid: {reason}", None, cube
-                
-                # Try rotating adjacent faces to fix this edge
-                adjacent_faces = [face for face, _ in edge]
-                fixed = False
-                
-                for face in adjacent_faces:
-                    for direction in ['cw', 'ccw', '2']:
-                        # Try rotating this face
-                        new_cube = cube.rotate_face(face, direction)
-                        
-                        # Check if this fixes the current edge without breaking previous pieces
-                        new_edge_colors = new_cube.get_edge(edge)
-                        new_edge_valid, _ = new_cube.is_valid_combination(new_edge_colors)
-                        
-                        # Check if white corners and edges are still valid
-                        pieces_still_valid = True
-                        
-                        # Check white corners
-                        for corner in corners:
-                            corner_colors = new_cube.get_corner(corner)
-                            corner_valid, _ = new_cube.is_valid_combination(corner_colors)
-                            if not corner_valid:
-                                pieces_still_valid = False
-                                break
-                        
-                        # Check white edges
-                        if pieces_still_valid:
-                            for edge in edges:
-                                edge_colors = new_cube.get_edge(edge)
-                                edge_valid, _ = new_cube.is_valid_combination(edge_colors)
-                                if not edge_valid:
-                                    pieces_still_valid = False
-                                    break
-                        
-                        # Check previous middle edges
-                        if pieces_still_valid:
-                            for j in range(i):
-                                prev_edge_colors = new_cube.get_edge(middle_edges[j])
-                                prev_edge_valid, _ = new_cube.is_valid_combination(prev_edge_colors)
-                                if not prev_edge_valid:
-                                    pieces_still_valid = False
-                                    break
-                        
-                        if new_edge_valid and pieces_still_valid:
-                            yield f"Fixing middle edge {i+1} by rotating {face} face", (face, direction), new_cube
-                            
-                            cube = new_cube
-                            moves.append((face, direction))
-                            fixed = True
-                            break
-                    
-                    if fixed:
-                        break
-        
-        # Step 4: Fix the yellow corners and edges
-        yellow_corners = [
-            # Yellow-face corners (clockwise from top-left)
-            [('y', (0, 0)), ('g', (2, 0)), ('o', (2, 2))],  # Yellow-Green-Orange (YGO)
-            [('y', (0, 2)), ('r', (2, 2)), ('g', (2, 2))],  # Yellow-Red-Green (YRG)
-            [('y', (2, 2)), ('b', (2, 2)), ('r', (2, 0))],  # Yellow-Blue-Red (YBR)
-            [('y', (2, 0)), ('o', (2, 0)), ('b', (2, 0))],  # Yellow-Orange-Blue (YOB)
-        ]
-        
-        yellow_edges = [
-            # Yellow-face edges (clockwise from top)
-            [('y', (0, 1)), ('g', (2, 1))],  # Yellow-Green (YG)
-            [('y', (1, 2)), ('r', (2, 1))],  # Yellow-Red (YR)
-            [('y', (2, 1)), ('b', (2, 1))],  # Yellow-Blue (YB)
-            [('y', (1, 0)), ('o', (2, 1))],  # Yellow-Orange (YO)
-        ]
-        
-        # First fix yellow corners
-        for i, corner in enumerate(yellow_corners):
-            corner_name = ["Yellow-Green-Orange", "Yellow-Red-Green", "Yellow-Blue-Red", "Yellow-Orange-Blue"][i]
-            yield f"Step 4: Working on yellow corner {i+1}: {corner_name}", None, cube
-            
-            # Get the current colors at this corner
-            colors = cube.get_corner(corner)
-            valid, reason = cube.is_valid_combination(colors)
-            
-            if not valid:
-                yield f"Yellow corner {i+1} is invalid: {reason}", None, cube
-                
-                # For yellow corners, we primarily rotate the yellow face
-                fixed = False
-                
-                for direction in ['cw', 'ccw', '2']:
-                    # Try rotating yellow face
-                    new_cube = cube.rotate_face('y', direction)
-                    
-                    # Check if this improves the situation
-                    improvement = False
-                    for j, c in enumerate(yellow_corners):
-                        old_colors = cube.get_corner(c)
-                        old_valid, _ = cube.is_valid_combination(old_colors)
-                        
-                        new_colors = new_cube.get_corner(c)
-                        new_valid, _ = new_cube.is_valid_combination(new_colors)
-                        
-                        if not old_valid and new_valid:
-                            improvement = True
-                            break
-                    
-                    if improvement:
-                        yield f"Rotating yellow face to improve corner situation", ('y', direction), new_cube
-                        
-                        cube = new_cube
-                        moves.append(('y', direction))
-                        fixed = True
-                        break
-                
-                # If rotating yellow face didn't work, try adjacent faces
-                if not fixed:
-                    adjacent_faces = [face for face, _ in corner if face != 'y']
-                    
-                    for face in adjacent_faces:
-                        for direction in ['cw', 'ccw', '2']:
-                            # Try rotating this face
-                            new_cube = cube.rotate_face(face, direction)
-                            
-                            # Check if this fixes the current corner without breaking previous pieces
-                            new_corner_colors = new_cube.get_corner(corner)
-                            new_corner_valid, _ = new_cube.is_valid_combination(new_corner_colors)
-                            
-                            # Check if white and middle pieces are still valid
-                            pieces_still_valid = True
-                            
-                            # Check white corners
-                            for c in corners:
-                                c_colors = new_cube.get_corner(c)
-                                c_valid, _ = new_cube.is_valid_combination(c_colors)
-                                if not c_valid:
-                                    pieces_still_valid = False
-                                    break
-                            
-                            # Check white edges
-                            if pieces_still_valid:
-                                for e in edges:
-                                    e_colors = new_cube.get_edge(e)
-                                    e_valid, _ = new_cube.is_valid_combination(e_colors)
-                                    if not e_valid:
-                                        pieces_still_valid = False
-                                        break
-                            
-                            # Check middle edges
-                            if pieces_still_valid:
-                                for e in middle_edges:
-                                    e_colors = new_cube.get_edge(e)
-                                    e_valid, _ = new_cube.is_valid_combination(e_colors)
-                                    if not e_valid:
-                                        pieces_still_valid = False
-                                        break
-                            
-                            if new_corner_valid and pieces_still_valid:
-                                yield f"Fixing yellow corner {i+1} by rotating {face} face", (face, direction), new_cube
-                                
-                                cube = new_cube
-                                moves.append((face, direction))
-                                fixed = True
-                                break
-                        
-                        if fixed:
-                            break
-        
-        # Then fix yellow edges
-        for i, edge in enumerate(yellow_edges):
-            edge_name = ["Yellow-Green", "Yellow-Red", "Yellow-Blue", "Yellow-Orange"][i]
-            yield f"Step 4: Working on yellow edge {i+1}: {edge_name}", None, cube
-            
-            # Get the current colors at this edge
-            colors = cube.get_edge(edge)
-            valid, reason = cube.is_valid_combination(colors)
-            
-            if not valid:
-                yield f"Yellow edge {i+1} is invalid: {reason}", None, cube
-                
-                # For yellow edges, we primarily rotate the yellow face
-                fixed = False
-                
-                for direction in ['cw', 'ccw', '2']:
-                    # Try rotating yellow face
-                    new_cube = cube.rotate_face('y', direction)
-                    
-                    # Check if this improves the situation
-                    improvement = False
-                    for j, e in enumerate(yellow_edges):
-                        old_colors = cube.get_edge(e)
-                        old_valid, _ = cube.is_valid_combination(old_colors)
-                        
-                        new_colors = new_cube.get_edge(e)
-                        new_valid, _ = new_cube.is_valid_combination(new_colors)
-                        
-                        if not old_valid and new_valid:
-                            improvement = True
-                            break
-                    
-                    if improvement:
-                        yield f"Rotating yellow face to improve edge situation", ('y', direction), new_cube
-                        
-                        cube = new_cube
-                        moves.append(('y', direction))
-                        fixed = True
-                        break
-        
-        # Final check to make sure all pieces are valid
+        # Final check to make sure all white pieces are valid
         all_valid = True
         
-        # Check all corners
-        for i, corner in enumerate(corners + yellow_corners):
+        # Check all white corners
+        for i, corner in enumerate(corners):
             colors = cube.get_corner(corner)
             valid, reason = cube.is_valid_combination(colors)
             if not valid:
                 all_valid = False
-                yield f"Corner {i+1} is still invalid: {reason}", None, cube
+                yield f"White corner {i+1} is still invalid: {reason}", None, cube
         
-        # Check all edges
-        for i, edge in enumerate(edges + middle_edges + yellow_edges):
+        # Check all white edges
+        for i, edge in enumerate(edges):
             colors = cube.get_edge(edge)
             valid, reason = cube.is_valid_combination(colors)
             if not valid:
                 all_valid = False
-                yield f"Edge {i+1} is still invalid: {reason}", None, cube
+                yield f"White edge {i+1} is still invalid: {reason}", None, cube
         
         if all_valid:
-            yield "All pieces are now valid!", None, cube
+            yield "All white face pieces are now valid!", None, cube
         else:
-            yield "Warning: Some pieces are still invalid.", None, cube
+            yield "Warning: Some white face pieces are still invalid.", None, cube
         
         # Return the final solution
-        yield f"Solution complete with {len(moves)} moves", None, cube
+        yield f"White face solution complete with {len(moves)} moves", None, cube
 
 def main():
     root = tk.Tk()
