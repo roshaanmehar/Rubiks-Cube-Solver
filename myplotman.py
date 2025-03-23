@@ -170,8 +170,10 @@ class CubeState:
     def is_valid_combination(self, colors):
         """Check if a combination of colors is valid (no opposites or duplicates)."""
         # Check for duplicates
-        if len(colors) != len(set(colors)):
-            return False, "Contains duplicate colors"
+        color_counts = Counter(colors)
+        for color, count in color_counts.items():
+            if count > 1:
+                return False, f"Contains duplicate color: {color} appears {count} times"
         
         # Check for opposites
         for i in range(len(colors)):
@@ -327,6 +329,15 @@ class CubeVisualizer:
                         outline="black",
                         width=2
                     )
+                    
+                    # Add the color letter in the center of each cell
+                    self.canvas.create_text(
+                        x_offset + (j + 0.5) * self.cell_size,
+                        y_offset + (i + 0.5) * self.cell_size,
+                        text=self.cube.faces[face][i, j],
+                        font=("Arial", 10, "bold"),
+                        fill="black"
+                    )
         
         # Update the canvas
         self.canvas.update()
@@ -367,8 +378,8 @@ class CubeVisualizer:
                 else:
                     self.move_label.config(text="")
                 
-                # Schedule the next step
-                self.root.after(500, self.continue_solving)  # 500ms delay between steps
+                # Schedule the next step with a 3-second delay
+                self.root.after(3000, self.continue_solving)  # 3000ms = 3 seconds
             
             except StopIteration:
                 # Solving is complete
