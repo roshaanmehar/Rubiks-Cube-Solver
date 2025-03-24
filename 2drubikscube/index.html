@@ -410,52 +410,57 @@
             }
             
             render() {
-                // Clear container
-                this.container.innerHTML = '';
-                
-                // Create 2D layout
-                const layout = document.createElement('div');
-                layout.className = 'cube-2d';
-                
-                // Create faces based on the layout
-                Object.entries(LAYOUT_2D).forEach(([face, position]) => {
-                    // Skip yellow face if center is white, and vice versa
-                    if ((face === 'yellow' && this.centerColor === 'yellow') || 
-                        (face === 'white' && this.centerColor === 'white')) {
-                        return;
-                    }
-                    
-                    const faceElement = document.createElement('div');
-                    faceElement.className = 'face-2d';
-                    faceElement.style.gridRow = `${position.row + 1} / span ${position.rowSpan}`;
-                    faceElement.style.gridColumn = `${position.col + 1} / span ${position.colSpan}`;
-                    
-                    // Create stickers
-                    for (let i = 0; i < 9; i++) {
-                        const sticker = document.createElement('div');
-                        sticker.className = 'sticker';
-                        if (i === 4) sticker.className += ' center';
-                        
-                        // Set color
-                        const color = this.cubeState[face][i];
-                        sticker.style.backgroundColor = '#' + color.toString(16).padStart(6, '0');
-                        
-                        // Add index number
-                        sticker.textContent = i;
-                        
-                        // Add click handler
-                        sticker.addEventListener('click', () => {
-                            this.handleStickerClick(face, i);
-                        });
-                        
-                        faceElement.appendChild(sticker);
-                    }
-                    
-                    layout.appendChild(faceElement);
-                });
-                
-                this.container.appendChild(layout);
-            }
+    // Clear container
+    this.container.innerHTML = '';
+
+    // Create 2D layout
+    const layout = document.createElement('div');
+    layout.className = 'cube-2d';
+
+    // Create faces based on the layout
+    Object.entries(LAYOUT_2D).forEach(([face, position]) => {
+        // Adjust for center color (if center is white, down should be yellow, etc.)
+        if (this.centerColor === 'white') {
+            if (face === 'down') face = 'yellow'; // Down becomes yellow if white is center
+            if (face === 'up') face = 'white';   // Up becomes white if white is center
+        } else if (this.centerColor === 'yellow') {
+            if (face === 'up') face = 'white';   // Up becomes white if yellow is center
+            if (face === 'down') face = 'yellow'; // Down becomes yellow if yellow is center
+        }
+
+        const faceElement = document.createElement('div');
+        faceElement.className = 'face-2d';
+        faceElement.style.gridRow = `${position.row + 1} / span ${position.rowSpan}`;
+        faceElement.style.gridColumn = `${position.col + 1} / span ${position.colSpan}`;
+
+        // Create stickers for each face
+        for (let i = 0; i < 9; i++) {
+            const sticker = document.createElement('div');
+            sticker.className = 'sticker';
+            if (i === 4) sticker.className += ' center';
+
+            // Set color
+            const color = this.cubeState[face][i];
+            sticker.style.backgroundColor = '#' + color.toString(16).padStart(6, '0');
+
+            // Add index number
+            sticker.textContent = i;
+
+            // Add click handler
+            sticker.addEventListener('click', () => {
+                this.handleStickerClick(face, i);
+            });
+
+            faceElement.appendChild(sticker);
+        }
+
+        layout.appendChild(faceElement);
+    });
+
+    this.container.appendChild(layout);
+}
+
+
             
             handleStickerClick(face, index) {
                 // Don't allow changing center stickers
