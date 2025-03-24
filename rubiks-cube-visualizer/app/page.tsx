@@ -11,24 +11,54 @@ export default function Home() {
   const [selectedCubie, setSelectedCubie] = useState<number | null>(null)
   const [rotatingFace, setRotatingFace] = useState<string | null>(null)
   const [rotationDirection, setRotationDirection] = useState<string>("clockwise")
+  const [cubeKey, setCubeKey] = useState<number>(0) // Force re-render when needed
+
+  // Store the cube state in the parent component to persist changes
+  const [cubeState, setCubeState] = useState<Record<string, number[]>>({
+    front: Array(9).fill(0xff0000), // Red
+    back: Array(9).fill(0xff8000), // Orange
+    up: Array(9).fill(0xffffff), // White
+    down: Array(9).fill(0xffff00), // Yellow
+    left: Array(9).fill(0x00ff00), // Green
+    right: Array(9).fill(0x0000ff), // Blue
+  })
+
+  // Handle color selection
+  const handleColorSelect = (color: number) => {
+    if (selectedFace && selectedCubie !== null) {
+      const newState = { ...cubeState }
+      newState[selectedFace][selectedCubie] = color
+      setCubeState(newState)
+      setCubeKey((prev) => prev + 1) // Force re-render
+    }
+  }
+
+  // Handle rotation completion
+  const handleRotationComplete = (newState: Record<string, number[]>) => {
+    setCubeState(newState)
+    setRotatingFace(null)
+    setCubeKey((prev) => prev + 1) // Force re-render
+  }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-8">
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-8 bg-gray-50">
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm flex flex-col">
         <h1 className="text-3xl font-bold mb-8 text-center">Rubik's Cube Visualizer</h1>
 
         <div className="flex flex-col md:flex-row w-full gap-8">
-          <div className="w-full md:w-2/3 h-[400px] md:h-[600px] bg-gray-100 rounded-lg shadow-md">
+          <div className="w-full md:w-2/3 h-[400px] md:h-[600px] bg-gray-100 rounded-lg shadow-md overflow-hidden">
             <RubiksCube
+              key={cubeKey}
               selectedFace={selectedFace}
               selectedCubie={selectedCubie}
               rotatingFace={rotatingFace}
               rotationDirection={rotationDirection}
+              cubeState={cubeState}
               onCubieClick={(face, index) => {
                 setSelectedFace(face)
                 setSelectedCubie(index)
               }}
-              onRotationComplete={() => setRotatingFace(null)}
+              onRotationComplete={handleRotationComplete}
             />
           </div>
 
@@ -75,9 +105,10 @@ export default function Home() {
                 <div className="mb-4">
                   <h3 className="text-md font-medium mb-2">Change Color</h3>
                   <ColorPicker
-                    onColorSelect={(color) => {
-                      // Color selection logic is handled in the ColorPicker component
-                    }}
+                    selectedColor={
+                      selectedFace && selectedCubie !== null ? cubeState[selectedFace][selectedCubie] : null
+                    }
+                    onColorSelect={handleColorSelect}
                   />
                 </div>
               )}
