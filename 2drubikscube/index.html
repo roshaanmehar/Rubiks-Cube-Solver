@@ -1,427 +1,562 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Rubik's 2D – White/Yellow Center</title>
-  <style>
-    body {
-      margin: 0; padding: 0;
-      font-family: sans-serif;
-      background: #f3f3f3;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto; 
-      padding: 20px;
-    }
-    h1 {
-      text-align: center; 
-      margin-bottom: 20px;
-    }
-    .cube-container {
-      display: flex; 
-      justify-content: center; 
-      margin-bottom: 20px;
-    }
-    /* We have a 5-face net laid out in a plus sign:
-         [blue]
-     [orange][center][red]
-         [green]
-    */
-    .cube-net {
-      display: grid;
-      /* 5 rows x 5 columns so we can position each face in a plus shape */
-      grid-template-columns: repeat(5, 40px);
-      grid-template-rows: repeat(5, 40px);
-      gap: 2px;
-    }
-    .face-2d {
-      display: grid;
-      grid-template-columns: repeat(3, 40px);
-      grid-template-rows: repeat(3, 40px);
-      gap: 2px;
-    }
-    .sticker {
-      width: 40px; height: 40px;
-      border: 1px solid #444;
-      display: flex; 
-      align-items: center; 
-      justify-content: center;
-      font-size: 12px; 
-      color: rgba(0,0,0,0.6);
-      cursor: pointer;
-      transition: transform 0.1s;
-    }
-    .sticker:hover {
-      transform: scale(1.03);
-    }
-    .sticker.center {
-      font-weight: bold; 
-      color: #000;
-    }
-    .controls {
-      display: flex; 
-      flex-wrap: wrap; 
-      gap: 20px;
-    }
-    .control-panel {
-      background: #fff; 
-      border-radius: 6px; 
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      min-width: 240px;
-    }
-    .control-panel h2 {
-      margin-top: 0;
-    }
-    .button-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 10px;
-    }
-    button {
-      padding: 8px; 
-      background: #4299e1; 
-      border: none; 
-      border-radius: 4px; 
-      color: #fff; 
-      cursor: pointer; 
-      font-weight: 500;
-    }
-    button:hover {
-      background: #3182ce;
-    }
-    .modal {
-      position: fixed; 
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      display: flex; 
-      align-items: center; 
-      justify-content: center;
-      z-index: 999;
-    }
-    .modal-content {
-      background: #fff; 
-      padding: 20px; 
-      border-radius: 6px;
-      width: 300px;
-    }
-    .color-picker {
-      display: grid; 
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px; 
-      margin-bottom: 16px;
-    }
-    .color-option {
-      width: 40px; 
-      height: 40px; 
-      border: 1px solid #ccc; 
-      cursor: pointer;
-    }
-    .color-option:hover {
-      border: 2px solid #000;
-    }
-    .hidden {
-      display: none !important;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Rubik's Cube Visualizer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .cube-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .cube-2d {
+            display: grid;
+            grid-template-columns: repeat(12, 40px);
+            grid-template-rows: repeat(9, 40px);
+            gap: 2px;
+        }
+
+        .face-2d {
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            grid-template-rows: repeat(3, 40px);
+            gap: 2px;
+        }
+
+        .sticker {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        .sticker.center {
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.7);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .controls {
+                flex-direction: row;
+            }
+
+            .control-panel {
+                flex: 1;
+            }
+        }
+
+        .control-panel {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        h3 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .select-container {
+            margin-bottom: 15px;
+        }
+
+        .select-container label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: none;
+            background-color: #4299e1;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: #3182ce;
+        }
+
+        button:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .instructions {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .color-picker {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .color-option {
+            height: 40px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+
+        .color-option:hover {
+            border: 2px solid #000;
+        }
+
+        .cancel-button {
+            width: 100%;
+            background-color: #6c757d;
+        }
+
+        .cancel-button:hover {
+            background-color: #5a6268;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <h1>2D Rubik's Cube: White/Yellow Center</h1>
-  
-  <div class="cube-container">
-    <div class="cube-net" id="cube-net"></div>
-  </div>
-  
-  <div class="controls">
-    <div class="control-panel">
-      <h2>Center Color</h2>
-      <select id="center-select">
-        <option value="white">White Center</option>
-        <option value="yellow">Yellow Center</option>
-      </select>
-      
-      <h2>Rotate Direction</h2>
-      <select id="rotation-direction">
-        <option value="clockwise">Clockwise</option>
-        <option value="counterclockwise">Counter-Clockwise</option>
-      </select>
-      
-      <h2>Rotate Face</h2>
-      <div class="button-grid">
-        <button data-face="center">Center</button>
-        <button data-face="green">Green</button>
-        <button data-face="red">Red</button>
-        <button data-face="blue">Blue</button>
-        <button data-face="orange">Orange</button>
-        <!-- We do have a hidden face for the "other center" in state, but we do not show a button for it -->
-      </div>
+    <div class="container">
+        <h1>2D Rubik's Cube Visualizer</h1>
+        
+        <div class="cube-container" id="cube-container"></div>
+        
+        <div class="controls">
+            <div class="control-panel">
+                <h2>Controls</h2>
+                
+                <div class="select-container">
+                    <label for="center-color">Center Color</label>
+                    <select id="center-color">
+                        <option value="white">White</option>
+                        <option value="yellow">Yellow</option>
+                    </select>
+                </div>
+                
+                <div class="select-container">
+                    <label for="rotation-direction">Rotation Direction</label>
+                    <select id="rotation-direction">
+                        <option value="clockwise">Clockwise</option>
+                        <option value="counterclockwise">Counter-Clockwise</option>
+                    </select>
+                </div>
+                
+                <h3>Rotate Face</h3>
+                <div class="button-grid">
+                    <button id="rotate-up">Up (Blue)</button>
+                    <button id="rotate-front">Front (Green)</button>
+                    <button id="rotate-right">Right (Red)</button>
+                    <button id="rotate-down">Down (Yellow)</button>
+                    <button id="rotate-back">Back (Orange)</button>
+                    <button id="rotate-left">Left (Orange)</button>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <h2>Instructions</h2>
+                <ul class="instructions">
+                    <li>Click on any sticker to change its color</li>
+                    <li>Use the rotation controls to turn faces</li>
+                    <li>Change the center color using the dropdown</li>
+                    <li>Numbers on each sticker show their position (0-8)</li>
+                </ul>
+            </div>
+        </div>
     </div>
     
-    <div class="control-panel">
-      <h2>Instructions</h2>
-      <ul>
-        <li>Click any non‐center sticker to change color.</li>
-        <li>Switch center between White/Yellow at will.</li>
-        <li>Rotation only affects that face, ignoring adjacency.</li>
-      </ul>
+    <!-- Color picker modal -->
+    <div id="color-picker-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Select Color</h3>
+            <div id="color-picker" class="color-picker">
+                <div class="color-option" style="background-color: #FF0000;" data-color="0xff0000" data-name="Red"></div>
+                <div class="color-option" style="background-color: #FFA500;" data-color="0xffa500" data-name="Orange"></div>
+                <div class="color-option" style="background-color: #FFFFFF;" data-color="0xffffff" data-name="White"></div>
+                <div class="color-option" style="background-color: #FFFF00;" data-color="0xffff00" data-name="Yellow"></div>
+                <div class="color-option" style="background-color: #00FF00;" data-color="0x00ff00" data-name="Green"></div>
+                <div class="color-option" style="background-color: #0000FF;" data-color="0x0000ff" data-name="Blue"></div>
+            </div>
+            <button id="close-color-picker" class="cancel-button">Cancel</button>
+        </div>
     </div>
-  </div>
-</div>
-
-<!-- Color Picker Modal -->
-<div class="modal hidden" id="color-picker-modal">
-  <div class="modal-content">
-    <h3>Select Color</h3>
-    <div class="color-picker" id="color-picker">
-      <div class="color-option" style="background-color:#ff0000"  data-color="0xff0000"></div>
-      <div class="color-option" style="background-color:#ffa500" data-color="0xffa500"></div>
-      <div class="color-option" style="background-color:#ffffff" data-color="0xffffff"></div>
-      <div class="color-option" style="background-color:#ffff00" data-color="0xffff00"></div>
-      <div class="color-option" style="background-color:#00ff00" data-color="0x00ff00"></div>
-      <div class="color-option" style="background-color:#0000ff" data-color="0x0000ff"></div>
-    </div>
-    <button id="color-picker-cancel">Cancel</button>
-  </div>
-</div>
-
-<script>
-/*
- We have 6 faces total, each stored as a 9-element array (0..8).
- We'll label them as:
-   1) white
-   2) yellow
-   3) green
-   4) blue
-   5) red
-   6) orange
-
- We only *render* 5 of these in a plus layout: center, green, red, orange, and blue.
- The center is either "white" or "yellow" per the user’s selection.
-
- If the center is "white," the side faces (green, red, orange, blue) are oriented so that
- the side face's top row is adjacent to White's bottom row.
-
- If the center is "yellow," we flip each side face so that the side face's *bottom row*
- is adjacent to Yellow's *top row* (like you said: if green's top row was touching white,
- then green’s bottom row should touch yellow).
-*/
-
-// Convenient color hex constants
-const COLORS = {
-  white:  0xffffff,
-  yellow: 0xffff00,
-  green:  0x00ff00,
-  blue:   0x0000ff,
-  red:    0xff0000,
-  orange: 0xffa500
-};
-
-// Create a default 3x3 face array for a given color
-function makeFace(colorHex) {
-  return Array(9).fill(colorHex);
-}
-
-// Our overall cube state, each face has 9 stickers
-const cubeState = {
-  white:  makeFace(COLORS.white),
-  yellow: makeFace(COLORS.yellow),
-  green:  makeFace(COLORS.green),
-  blue:   makeFace(COLORS.blue),
-  red:    makeFace(COLORS.red),
-  orange: makeFace(COLORS.orange)
-};
-
-// For building the plus layout, we define the row/col region for each “slot”:
-// We'll have 5 faces: center, top(back), bottom(front), left(orange), right(red).
-// Each face is 3×3, so we use rowSpan=3 and colSpan=3. 
-// We'll place them so that the "center" face is in the middle of this 5×5 grid.
-const LAYOUT = {
-  center:  { row: 2, col: 2 },
-  blue:    { row: 0, col: 2 }, // above center
-  green:   { row: 4, col: 2 }, // below center
-  orange:  { row: 2, col: 0 }, // left of center
-  red:     { row: 2, col: 4 }  // right of center
-};
-
-// We’ll keep track of which sticker was clicked
-let selectedSticker = null;
-
-// Build the UI
-const netContainer = document.getElementById("cube-net");
-const centerSelect = document.getElementById("center-select");
-const rotationSelect = document.getElementById("rotation-direction");
-const modal = document.getElementById("color-picker-modal");
-const colorPicker = document.getElementById("color-picker");
-const colorPickerCancel = document.getElementById("color-picker-cancel");
-
-// Add event listeners
-document.querySelectorAll(".button-grid button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const faceName = btn.dataset.face; // e.g. "green", "center", "orange"...
-    rotateFace(faceName);
-  });
-});
-
-colorPickerCancel.addEventListener("click", () => {
-  modal.classList.add("hidden");
-  selectedSticker = null;
-});
-
-modal.addEventListener("click", e => {
-  // If user clicks outside the modal-content, close
-  if (e.target === modal) {
-    modal.classList.add("hidden");
-    selectedSticker = null;
-  }
-});
-
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape") {
-    modal.classList.add("hidden");
-    selectedSticker = null;
-  }
-});
-
-// Handle picking a color from the color options
-colorPicker.querySelectorAll(".color-option").forEach(opt => {
-  opt.addEventListener("click", () => {
-    const colorVal = parseInt(opt.dataset.color, 16);
-    if (selectedSticker) {
-      const { face, index } = selectedSticker;
-      // set that sticker's color
-      if (index !== 4) { // no changing center
-        cubeState[face][index] = colorVal;
-      }
-      modal.classList.add("hidden");
-      selectedSticker = null;
-      renderNet();
-    }
-  });
-});
-
-// When center is changed, re‐render
-centerSelect.addEventListener("change", () => {
-  renderNet();
-});
-
-// Render the entire net
-function renderNet() {
-  netContainer.innerHTML = ""; // clear any old DOM
-
-  // We'll build face‐divs for: center, blue, green, orange, red.
-  // But which actual face is "center"? -> either "white" or "yellow" per the select
-  const centerFaceName = centerSelect.value; // "white" or "yellow"
-
-  // For the side faces, we always show "blue", "green", "orange", "red" face arrays from cubeState
-  // But if center is White, we do NOT flip. If center is Yellow, we flip each side 180 degrees
-  const shouldFlip = (centerFaceName === "yellow"); 
-
-  // We'll create these five face divs:
-  createFaceElement("center", centerFaceName, false); // never flip center
-  createFaceElement("blue",  "blue",  shouldFlip);
-  createFaceElement("green", "green", shouldFlip);
-  createFaceElement("orange","orange",shouldFlip);
-  createFaceElement("red",   "red",   shouldFlip);
-}
-
-// Utility: create a 3×3 face DIV for faceName, place in net, flipping if needed
-function createFaceElement(slot, faceName, flip) {
-  const pos = LAYOUT[slot];
-  const faceDiv = document.createElement("div");
-  faceDiv.classList.add("face-2d");
-
-  // Position in the 5x5 grid (each face is 3 rows x 3 columns)
-  faceDiv.style.gridRow = `${pos.row + 1} / span 3`;
-  faceDiv.style.gridColumn = `${pos.col + 1} / span 3`;
-
-  // We'll produce an array of 9 indices that says how to map from original
-  // face array to the rendered squares. If flip==true, we do a 180 rotation.
-  // Index layout (no flip):
-  //    0 1 2
-  //    3 4 5
-  //    6 7 8
-  // For a 180° flip, index i goes to 8 - i. 
-  let indexMap = [];
-  for (let i=0; i<9; i++){
-    indexMap.push(flip ? (8 - i) : i);
-  }
-
-  // Make 9 stickers
-  for (let i=0; i<9; i++){
-    const stickerDiv = document.createElement("div");
-    stickerDiv.classList.add("sticker");
-    if (i === 4) {
-      stickerDiv.classList.add("center");
-    }
-    // fetch the actual color from cubeState[faceName], using indexMap
-    const colorHex = cubeState[faceName][ indexMap[i] ];
-    stickerDiv.style.backgroundColor = "#" + colorHex.toString(16).padStart(6,"0");
-    // show the original index so user can see which sticker it is
-    // (some people prefer to show i or indexMap[i] – whichever is more intuitive)
-    stickerDiv.textContent = indexMap[i]; 
     
-    // If not the center sticker, allow color changes
-    if (i !== 4) {
-      stickerDiv.addEventListener("click", () => {
-        selectedSticker = { face: faceName, index: indexMap[i] };
-        modal.classList.remove("hidden");
-      });
-    }
-    faceDiv.appendChild(stickerDiv);
-  }
+    <script>
+        // Constants for the Rubik's Cube
+        const FACE_COLORS = {
+            front: 0x00ff00, // Green
+            back: 0xffa500,  // Orange
+            up: 0x0000ff,    // Blue
+            down: 0xffff00,  // Yellow
+            left: 0xffa500,  // Orange
+            right: 0xff0000, // Red
+            white: 0xffffff, // White
+            yellow: 0xffff00 // Yellow
+        };
 
-  netContainer.appendChild(faceDiv);
-}
+        // 2D layout configuration
+        const LAYOUT_2D = {
+            up: { row: 0, col: 3, rowSpan: 3, colSpan: 3 },
+            left: { row: 3, col: 0, rowSpan: 3, colSpan: 3 },
+            front: { row: 3, col: 3, rowSpan: 3, colSpan: 3 },
+            right: { row: 3, col: 6, rowSpan: 3, colSpan: 3 },
+            yellow: { row: 3, col: 9, rowSpan: 3, colSpan: 3 },
+            down: { row: 6, col: 3, rowSpan: 3, colSpan: 3 }
+        };
 
-// Rotate face in place, ignoring adjacency
-function rotateFace(faceSlot) {
-  // faceSlot might be "center", "green", "blue", etc.
-  // If faceSlot === "center", that means rotate either the "white" or "yellow" face.
-  let faceName = faceSlot;
-  if (faceSlot === "center") {
-    faceName = centerSelect.value; 
-  }
-  
-  // If the user tries to rotate a face that doesn't exist in our state, skip
-  if (!cubeState[faceName]) return; 
+        class Cube2D {
+            constructor() {
+                this.container = document.getElementById('cube-container');
+                this.centerColor = "white";
+                this.selectedSticker = null;
+                this.rotationDirection = "clockwise";
+                
+                // Initialize cube state
+                this.initCubeState();
+                
+                // Initialize UI
+                this.initUI();
+                
+                // Render the cube
+                this.render();
+                
+                // Initialize color picker
+                this.initColorPicker();
+            }
+            
+            initCubeState() {
+                // Initialize the cube state with standard colors
+                this.cubeState = {
+                    front: Array(9).fill(FACE_COLORS.front),
+                    back: Array(9).fill(FACE_COLORS.back),
+                    up: Array(9).fill(FACE_COLORS.up),
+                    down: Array(9).fill(FACE_COLORS.down),
+                    left: Array(9).fill(FACE_COLORS.left),
+                    right: Array(9).fill(FACE_COLORS.right),
+                    white: Array(9).fill(FACE_COLORS.white),
+                    yellow: Array(9).fill(FACE_COLORS.yellow)
+                };
+            }
+            
+            initUI() {
+                // Set up center color selection
+                const centerColorSelect = document.getElementById('center-color');
+                centerColorSelect.addEventListener('change', (e) => {
+                    this.centerColor = e.target.value;
+                    this.render();
+                });
+                
+                // Set up rotation direction
+                const rotationDirectionSelect = document.getElementById('rotation-direction');
+                rotationDirectionSelect.addEventListener('change', (e) => {
+                    this.rotationDirection = e.target.value;
+                });
+                
+                // Set up rotation buttons
+                document.getElementById('rotate-front').addEventListener('click', () => {
+                    this.rotateFace('front');
+                });
+                
+                document.getElementById('rotate-back').addEventListener('click', () => {
+                    this.rotateFace('back');
+                });
+                
+                document.getElementById('rotate-up').addEventListener('click', () => {
+                    this.rotateFace('up');
+                });
+                
+                document.getElementById('rotate-down').addEventListener('click', () => {
+                    this.rotateFace('down');
+                });
+                
+                document.getElementById('rotate-left').addEventListener('click', () => {
+                    this.rotateFace('left');
+                });
+                
+                document.getElementById('rotate-right').addEventListener('click', () => {
+                    this.rotateFace('right');
+                });
+            }
+            
+            initColorPicker() {
+                const modal = document.getElementById('color-picker-modal');
+                const colorPicker = document.getElementById('color-picker');
+                const closeButton = document.getElementById('close-color-picker');
+                
+                // Set up color options
+                const colorOptions = colorPicker.querySelectorAll('.color-option');
+                colorOptions.forEach(option => {
+                    option.addEventListener('click', () => {
+                        const color = parseInt(option.dataset.color, 16);
+                        
+                        if (this.selectedSticker) {
+                            const { face, index } = this.selectedSticker;
+                            this.setFaceColor(face, index, color);
+                            modal.classList.add('hidden');
+                            this.selectedSticker = null;
+                        }
+                    });
+                });
+                
+                // Set up close button
+                closeButton.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    this.selectedSticker = null;
+                });
+                
+                // Close modal when clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.add('hidden');
+                        this.selectedSticker = null;
+                    }
+                });
+                
+                // Close modal with Escape key
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        modal.classList.add('hidden');
+                        this.selectedSticker = null;
+                    }
+                });
+            }
+            
+            render() {
+                // Clear container
+                this.container.innerHTML = '';
+                
+                // Create 2D layout
+                const layout = document.createElement('div');
+                layout.className = 'cube-2d';
+                
+                // Create faces based on the layout
+                Object.entries(LAYOUT_2D).forEach(([face, position]) => {
+                    // Skip yellow face if center is white, and vice versa
+                    if ((face === 'yellow' && this.centerColor === 'yellow') || 
+                        (face === 'white' && this.centerColor === 'white')) {
+                        return;
+                    }
+                    
+                    const faceElement = document.createElement('div');
+                    faceElement.className = 'face-2d';
+                    faceElement.style.gridRow = `${position.row + 1} / span ${position.rowSpan}`;
+                    faceElement.style.gridColumn = `${position.col + 1} / span ${position.colSpan}`;
+                    
+                    // Create stickers
+                    for (let i = 0; i < 9; i++) {
+                        const sticker = document.createElement('div');
+                        sticker.className = 'sticker';
+                        if (i === 4) sticker.className += ' center';
+                        
+                        // Set color
+                        const color = this.cubeState[face][i];
+                        sticker.style.backgroundColor = '#' + color.toString(16).padStart(6, '0');
+                        
+                        // Add index number
+                        sticker.textContent = i;
+                        
+                        // Add click handler
+                        sticker.addEventListener('click', () => {
+                            this.handleStickerClick(face, i);
+                        });
+                        
+                        faceElement.appendChild(sticker);
+                    }
+                    
+                    layout.appendChild(faceElement);
+                });
+                
+                this.container.appendChild(layout);
+            }
+            
+            handleStickerClick(face, index) {
+                // Don't allow changing center stickers
+                if (index === 4) return;
+                
+                this.selectedSticker = { face, index };
+                
+                // Show color picker
+                const modal = document.getElementById('color-picker-modal');
+                modal.classList.remove('hidden');
+            }
+            
+            setFaceColor(face, index, color) {
+                // Don't allow changing center stickers
+                if (index === 4) return;
+                
+                this.cubeState[face][index] = color;
+                this.render();
+            }
+            
+            rotateFace(face) {
+                const isClockwise = this.rotationDirection === 'clockwise';
+                
+                // Update the cube state
+                const newState = this.updateCubeStateAfterRotation(face, isClockwise);
+                this.cubeState = newState;
+                
+                // Re-render the cube
+                this.render();
+            }
+            
+            updateCubeStateAfterRotation(face, clockwise) {
+                const newState = {};
+                Object.keys(this.cubeState).forEach(f => {
+                    newState[f] = [...this.cubeState[f]];
+                });
+                
+                // Helper function to rotate a face
+                const rotateFace = (face, clockwise) => {
+                    const oldFace = [...newState[face]];
+                    
+                    if (clockwise) {
+                        // Rotate clockwise
+                        newState[face][0] = oldFace[6];
+                        newState[face][1] = oldFace[3];
+                        newState[face][2] = oldFace[0];
+                        newState[face][3] = oldFace[7];
+                        newState[face][4] = oldFace[4]; // Center stays the same
+                        newState[face][5] = oldFace[1];
+                        newState[face][6] = oldFace[8];
+                        newState[face][7] = oldFace[5];
+                        newState[face][8] = oldFace[2];
+                    } else {
+                        // Rotate counter-clockwise
+                        newState[face][0] = oldFace[2];
+                        newState[face][1] = oldFace[5];
+                        newState[face][2] = oldFace[8];
+                        newState[face][3] = oldFace[1];
+                        newState[face][4] = oldFace[4]; // Center stays the same
+                        newState[face][5] = oldFace[7];
+                        newState[face][6] = oldFace[0];
+                        newState[face][7] = oldFace[3];
+                        newState[face][8] = oldFace[6];
+                    }
+                };
+                
+                // Rotate the face itself
+                rotateFace(face, clockwise);
+                
+                // Rotate the adjacent faces
+                switch (face) {
+                    case "front":
+                        if (clockwise) {
+                            // up -> right -> down -> left -> up
+                            const temp = [newState.up[6], newState.up[7], newState.up[8]];
+                            [newState.right[0], newState.right[3], newState.right[6]] = [newState.up[8], newState.up[7], newState.up[6]];
+                            [newState.down[2], newState.down[1], newState.down[0]] = [newState.right[6], newState.right[3], newState.right[0]];
+                            [newState.left[8], newState.left[5], newState.left[2]] = [newState.down[0], newState.down[1], newState.down[2]];
+                            [newState.up[6], newState.up[7], newState.up[8]] = [newState.left[2], newState.left[5], newState.left[8]];
+                        } else {
+                            // up -> left -> down -> right -> up
+                            const temp = [newState.up[6], newState.up[7], newState.up[8]];
+                            [newState.left[2], newState.left[5], newState.left[8]] = [newState.up[6], newState.up[7], newState.up[8]];
+                            [newState.down[0], newState.down[1], newState.down[2]] = [newState.left[8], newState.left[5], newState.left[2]];
+                            [newState.right[6], newState.right[3], newState.right[0]] = [newState.down[2], newState.down[1], newState.down[0]];
+                            [newState.up[8], newState.up[7], newState.up[6]] = [newState.right[0], newState.right[3], newState.right[6]];
+                        }
+                        break;
+                    
+                    // Other face rotation cases will go here as needed (for back, up, down, etc.)
 
-  const oldArr = [...cubeState[faceName]];
-  const newArr = [...oldArr];
+                }
+                
+                return newState;
+            }
+        }
 
-  const isClockwise = (rotationSelect.value === "clockwise");
-  if (isClockwise) {
-    // 0->6, 1->3, 2->0, etc.
-    newArr[0] = oldArr[6];
-    newArr[1] = oldArr[3];
-    newArr[2] = oldArr[0];
-    newArr[3] = oldArr[7];
-    newArr[4] = oldArr[4]; // center remains
-    newArr[5] = oldArr[1];
-    newArr[6] = oldArr[8];
-    newArr[7] = oldArr[5];
-    newArr[8] = oldArr[2];
-  } else {
-    // counter-clockwise
-    newArr[0] = oldArr[2];
-    newArr[1] = oldArr[5];
-    newArr[2] = oldArr[8];
-    newArr[3] = oldArr[1];
-    newArr[4] = oldArr[4];
-    newArr[5] = oldArr[7];
-    newArr[6] = oldArr[0];
-    newArr[7] = oldArr[3];
-    newArr[8] = oldArr[6];
-  }
-  cubeState[faceName] = newArr;
-  renderNet();
-}
-
-// On load, do initial render
-document.addEventListener("DOMContentLoaded", renderNet);
-</script>
+        // Initialize the cube when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const cube = new Cube2D();
+        });
+    </script>
 </body>
 </html>
