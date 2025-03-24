@@ -341,26 +341,62 @@ export default function RubiksCube({
           const geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95)
           const materials: THREE.MeshStandardMaterial[] = []
 
-          // Define materials for each face
-          const faceColors = [
-            x === 1 ? cubeState.right[getCubieIndexOnFace("right", x, y, z)] : 0x333333, // Right face
-            x === -1 ? cubeState.left[getCubieIndexOnFace("left", x, y, z)] : 0x333333, // Left face
-            y === 1 ? cubeState.up[getCubieIndexOnFace("up", x, y, z)] : 0x333333, // Up face
-            y === -1 ? cubeState.down[getCubieIndexOnFace("down", x, y, z)] : 0x333333, // Down face
-            z === 1 ? cubeState.front[getCubieIndexOnFace("front", x, y, z)] : 0x333333, // Front face
-            z === -1 ? cubeState.back[getCubieIndexOnFace("back", x, y, z)] : 0x333333, // Back face
-          ]
+          // Define materials for each face with default color for inner faces
+          const defaultColor = 0x333333
 
-          // Create materials
-          faceColors.forEach((color) => {
-            materials.push(
-              new THREE.MeshStandardMaterial({
-                color,
-                roughness: 0.3,
-                metalness: 0.2,
-              }),
-            )
-          })
+          // Right face (x = 1)
+          materials.push(
+            new THREE.MeshStandardMaterial({
+              color: x === 1 ? cubeState.right[getCubieIndexOnFace("right", x, y, z)] : defaultColor,
+              roughness: 0.3,
+              metalness: 0.2,
+            }),
+          )
+
+          // Left face (x = -1)
+          materials.push(
+            new THREE.MeshStandardMaterial({
+              color: x === -1 ? cubeState.left[getCubieIndexOnFace("left", x, y, z)] : defaultColor,
+              roughness: 0.3,
+              metalness: 0.2,
+            }),
+          )
+
+          // Up face (y = 1)
+          materials.push(
+            new THREE.MeshStandardMaterial({
+              color: y === 1 ? cubeState.up[getCubieIndexOnFace("up", x, y, z)] : defaultColor,
+              roughness: 0.3,
+              metalness: 0.2,
+            }),
+          )
+
+          // Down face (y = -1)
+          materials.push(
+            new THREE.MeshStandardMaterial({
+              color: y === -1 ? cubeState.down[getCubieIndexOnFace("down", x, y, z)] : defaultColor,
+              roughness: 0.3,
+              metalness: 0.2,
+            }),
+          )
+
+          // Front face (z = 1)
+          materials.push(
+            new THREE.MeshStandardMaterial({
+              color: z === 1 ? cubeState.front[getCubieIndexOnFace("front", x, y, z)] : defaultColor,
+              roughness: 0.3,
+              metalness: 0.2,
+            }),
+          )
+
+          // Back face (z = -1)
+          materials.push(
+            new THREE.MeshStandardMaterial({
+              color: z === -1 ? cubeState.back[getCubieIndexOnFace("back", x, y, z)] : defaultColor,
+              roughness: 0.3,
+              metalness: 0.2,
+            }),
+          )
 
           // Create cubie mesh
           const cubie = new THREE.Mesh(geometry, materials)
@@ -498,7 +534,7 @@ export default function RubiksCube({
     if (!cubeRef.current) return
 
     cubeRef.current.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
+      if (child instanceof THREE.Mesh && Array.isArray(child.material)) {
         const position = new THREE.Vector3()
         child.getWorldPosition(position)
 
@@ -510,12 +546,25 @@ export default function RubiksCube({
         // Update the materials based on the cube state
         const materials = child.material as THREE.MeshStandardMaterial[]
 
-        if (x === 1) materials[0].color.setHex(cubeState.right[getCubieIndexOnFace("right", x, y, z)])
-        if (x === -1) materials[1].color.setHex(cubeState.left[getCubieIndexOnFace("left", x, y, z)])
-        if (y === 1) materials[2].color.setHex(cubeState.up[getCubieIndexOnFace("up", x, y, z)])
-        if (y === -1) materials[3].color.setHex(cubeState.down[getCubieIndexOnFace("down", x, y, z)])
-        if (z === 1) materials[4].color.setHex(cubeState.front[getCubieIndexOnFace("front", x, y, z)])
-        if (z === -1) materials[5].color.setHex(cubeState.back[getCubieIndexOnFace("back", x, y, z)])
+        // Only update colors for faces that are on the outside of the cube
+        if (x === 1 && materials[0] && materials[0].color) {
+          materials[0].color.setHex(cubeState.right[getCubieIndexOnFace("right", x, y, z)])
+        }
+        if (x === -1 && materials[1] && materials[1].color) {
+          materials[1].color.setHex(cubeState.left[getCubieIndexOnFace("left", x, y, z)])
+        }
+        if (y === 1 && materials[2] && materials[2].color) {
+          materials[2].color.setHex(cubeState.up[getCubieIndexOnFace("up", x, y, z)])
+        }
+        if (y === -1 && materials[3] && materials[3].color) {
+          materials[3].color.setHex(cubeState.down[getCubieIndexOnFace("down", x, y, z)])
+        }
+        if (z === 1 && materials[4] && materials[4].color) {
+          materials[4].color.setHex(cubeState.front[getCubieIndexOnFace("front", x, y, z)])
+        }
+        if (z === -1 && materials[5] && materials[5].color) {
+          materials[5].color.setHex(cubeState.back[getCubieIndexOnFace("back", x, y, z)])
+        }
       }
     })
   }
@@ -748,6 +797,11 @@ export default function RubiksCube({
               newState.right[1],
               newState.right[2],
             ]
+            ;[newState.left[0], newState.left[1], newState.left[2]] = [
+              newState.back[0],
+              newState.back[1],
+              newState.back[2],
+            ]
           }
         }
         break
@@ -898,5 +952,4 @@ export default function RubiksCube({
 
   return <div ref={containerRef} className="w-full h-full" />
 }
-
 
