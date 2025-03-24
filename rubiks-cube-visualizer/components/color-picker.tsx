@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 
 interface ColorPickerProps {
+  selectedColor: number | null
   onColorSelect: (color: number) => void
 }
 
@@ -19,14 +19,7 @@ const COLORS = [
   { name: "Black", hex: "#000000", value: 0x000000 },
 ]
 
-export default function ColorPicker({ onColorSelect }: ColorPickerProps) {
-  const [selectedColor, setSelectedColor] = useState<number | null>(null)
-
-  const handleColorSelect = (colorValue: number) => {
-    setSelectedColor(colorValue)
-    onColorSelect(colorValue)
-  }
-
+export default function ColorPicker({ selectedColor, onColorSelect }: ColorPickerProps) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {COLORS.map((color) => (
@@ -34,10 +27,10 @@ export default function ColorPicker({ onColorSelect }: ColorPickerProps) {
           key={color.name}
           variant="outline"
           className="h-10 w-full p-0 overflow-hidden"
-          onClick={() => handleColorSelect(color.value)}
+          onClick={() => onColorSelect(color.value)}
           style={{
             backgroundColor: color.hex,
-            border: selectedColor === color.value ? "2px solid black" : "1px solid #e2e8f0",
+            border: selectedColor === color.value ? "3px solid black" : "1px solid #e2e8f0",
           }}
         >
           <span className="sr-only">{color.name}</span>
