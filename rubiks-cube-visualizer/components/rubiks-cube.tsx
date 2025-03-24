@@ -6,18 +6,17 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 
 interface RubiksCubeProps {
   selectedFace: string | null
-  selectedCubie: number | null
   rotatingFace: string | null
   rotationDirection: string
   cubeState: Record<string, number[]>
-  onCubieClick: (face: string, index: number) => void
+  onCubieClick: (face: string) => void
   onRotationComplete: (newState: Record<string, number[]>) => void
 }
 
 // Define the colors for each face
 const FACE_COLORS = {
   front: 0xff0000, // Red
-  back: 0xff8000, // Orange
+  back: 0xffa500, // Orange
   up: 0xffffff, // White
   down: 0xffff00, // Yellow
   left: 0x00ff00, // Green
@@ -66,7 +65,6 @@ const FACE_TO_AXIS = {
 
 export default function RubiksCube({
   selectedFace,
-  selectedCubie,
   rotatingFace,
   rotationDirection,
   cubeState,
@@ -88,6 +86,7 @@ export default function RubiksCube({
   const isRotatingRef = useRef<boolean>(false)
   const cubiePositionsRef = useRef<Map<THREE.Mesh, THREE.Vector3>>(new Map())
   const cubieToFaceIndicesRef = useRef<Map<THREE.Mesh, Record<string, number>>>(new Map())
+  const lastRotationStateRef = useRef<Record<string, number[]> | null>(null)
 
   // Initialize the scene
   useEffect(() => {
@@ -196,11 +195,7 @@ export default function RubiksCube({
         })
 
         if (clickedFace) {
-          // Get the cubie's face indices
-          const faceIndices = cubieToFaceIndicesRef.current.get(intersectedCubie)
-          if (faceIndices && faceIndices[clickedFace] !== undefined) {
-            onCubieClick(clickedFace, faceIndices[clickedFace])
-          }
+          onCubieClick(clickedFace)
         }
       }
     }
@@ -229,6 +224,9 @@ export default function RubiksCube({
 
           // Update the cube state based on the rotation
           const newState = updateCubeStateAfterRotation(rotatingFace, rotationDirection === "clockwise")
+
+          // Store the last rotation state
+          lastRotationStateRef.current = { ...newState }
 
           // Move cubies from rotation group back to cube group
           while (rotationGroupRef.current.children.length > 0) {
@@ -288,6 +286,9 @@ export default function RubiksCube({
     rotationProgressRef.current = 0
     isRotatingRef.current = true
 
+    // Store the current state before rotation
+    lastRotationStateRef.current = { ...cubeState }
+
     // Move cubies from cube group to rotation group based on the face
     const faceInfo = FACE_TO_AXIS[rotatingFace as keyof typeof FACE_TO_AXIS]
     const cubies: THREE.Object3D[] = []
@@ -317,7 +318,7 @@ export default function RubiksCube({
       cubeRef.current?.remove(cubie)
       rotationGroupRef.current?.add(cubie)
     })
-  }, [rotatingFace, rotationDirection])
+  }, [rotatingFace, rotationDirection, cubeState])
 
   // Create the cubies for the Rubik's Cube
   const createCubies = () => {
@@ -796,11 +797,6 @@ export default function RubiksCube({
               newState.right[0],
               newState.right[1],
               newState.right[2],
-            ]
-            ;[newState.left[0], newState.left[1], newState.left[2]] = [
-              newState.back[0],
-              newState.back[1],
-              newState.back[2],
             ]
           }
         }
