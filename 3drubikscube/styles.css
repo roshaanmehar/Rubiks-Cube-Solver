@@ -190,6 +190,7 @@ button:disabled {
 }
 
 /* Modal styles */
+/* Modal styles */
 .modal {
     position: fixed;
     top: 0;
@@ -214,4 +215,18 @@ button:disabled {
 .modal h3 {
     margin-top: 0;
     margin-bottom: 15px;
+}
+
+.cancel-button {
+    margin-top: 15px;
+    width: 100%;
+    background-color: #6c757d;
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+}
+
+.hidden {
+    display: none !important;
 }
