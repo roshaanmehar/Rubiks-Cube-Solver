@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Rubik's Cube Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>2D Rubik's Cube Visualizer</h1>
+        
+        <div class="cube-container" id="cube-container"></div>
+        
+        <div class="controls">
+            <div class="control-panel">
+                <h2>Controls</h2>
+                
+                <div class="select-container">
+                    <label for="center-color">Center Color</label>
+                    <select id="center-color">
+                        <option value="white">White</option>
+                        <option value="yellow">Yellow</option>
+                    </select>
+                </div>
+                
+                <div class="select-container">
+                    <label for="rotation-direction">Rotation Direction</label>
+                    <select id="rotation-direction">
+                        <option value="clockwise">Clockwise</option>
+                        <option value="counterclockwise">Counter-Clockwise</option>
+                    </select>
+                </div>
+                
+                <h3>Rotate Face</h3>
+                <div class="button-grid">
+                    <button id="rotate-up">Up (Blue)</button>
+                    <button id="rotate-front">Front (Red)</button>
+                    <button id="rotate-right">Right (Red)</button>
+                    <button id="rotate-down">Down (Green)</button>
+                    <button id="rotate-back">Back (Orange)</button>
+                    <button id="rotate-left">Left (Orange)</button>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <h2>Instructions</h2>
+                <ul class="instructions">
+                    <li>Click on any sticker to change its color</li>
+                    <li>Use the rotation controls to turn faces</li>
+                    <li>Change the center color using the dropdown</li>
+                    <li>Numbers on each sticker show their position (0-8)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Color picker modal -->
+    <div id="color-picker-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Select Color</h3>
+            <div id="color-picker" class="color-picker">
+                <div class="color-option" style="background-color: #FF0000;" data-color="0xff0000" data-name="Red"></div>
+                <div class="color-option" style="background-color: #FFA500;" data-color="0xffa500" data-name="Orange"></div>
+                <div class="color-option" style="background-color: #FFFFFF;" data-color="0xffffff" data-name="White"></div>
+                <div class="color-option" style="background-color: #FFFF00;" data-color="0xffff00" data-name="Yellow"></div>
+                <div class="color-option" style="background-color: #00FF00;" data-color="0x00ff00" data-name="Green"></div>
+                <div class="color-option" style="background-color: #0000FF;" data-color="0x0000ff" data-name="Blue"></div>
+            </div>
+            <button id="close-color-picker" class="cancel-button">Cancel</button>
+        </div>
+    </div>
+    
+    <script src="cubeFaceEditor.js"></script>
+    <script src="cube2D.js"></script>
+</body>
+</html>
