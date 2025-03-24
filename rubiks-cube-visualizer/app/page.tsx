@@ -4,33 +4,43 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import RubiksCube from "@/components/rubiks-cube"
-import ColorPicker from "@/components/color-picker"
+import CubeFaceEditor from "@/components/cube-face-editor"
+
+// Standard Rubik's Cube colors
+const STANDARD_COLORS = {
+  front: 0xff0000, // Red
+  back: 0xffa500, // Orange
+  up: 0xffffff, // White
+  down: 0xffff00, // Yellow
+  left: 0x00ff00, // Green
+  right: 0x0000ff, // Blue
+}
 
 export default function Home() {
   const [selectedFace, setSelectedFace] = useState<string | null>(null)
-  const [selectedCubie, setSelectedCubie] = useState<number | null>(null)
   const [rotatingFace, setRotatingFace] = useState<string | null>(null)
   const [rotationDirection, setRotationDirection] = useState<string>("clockwise")
   const [cubeKey, setCubeKey] = useState<number>(0) // Force re-render when needed
 
   // Store the cube state in the parent component to persist changes
   const [cubeState, setCubeState] = useState<Record<string, number[]>>({
-    front: Array(9).fill(0xff0000), // Red
-    back: Array(9).fill(0xff8000), // Orange
-    up: Array(9).fill(0xffffff), // White
-    down: Array(9).fill(0xffff00), // Yellow
-    left: Array(9).fill(0x00ff00), // Green
-    right: Array(9).fill(0x0000ff), // Blue
+    front: Array(9).fill(STANDARD_COLORS.front), // Red
+    back: Array(9).fill(STANDARD_COLORS.back), // Orange
+    up: Array(9).fill(STANDARD_COLORS.up), // White
+    down: Array(9).fill(STANDARD_COLORS.down), // Yellow
+    left: Array(9).fill(STANDARD_COLORS.left), // Green
+    right: Array(9).fill(STANDARD_COLORS.right), // Blue
   })
 
-  // Handle color selection
-  const handleColorSelect = (color: number) => {
-    if (selectedFace && selectedCubie !== null) {
-      const newState = { ...cubeState }
-      newState[selectedFace][selectedCubie] = color
-      setCubeState(newState)
-      setCubeKey((prev) => prev + 1) // Force re-render
-    }
+  // Handle color selection on the 2D face
+  const handleFaceColorChange = (face: string, index: number, color: number) => {
+    // Don't allow changing center cubies (index 4 is the center)
+    if (index === 4) return
+
+    const newState = { ...cubeState }
+    newState[face][index] = color
+    setCubeState(newState)
+    setCubeKey((prev) => prev + 1) // Force re-render
   }
 
   // Handle rotation completion
@@ -50,13 +60,11 @@ export default function Home() {
             <RubiksCube
               key={cubeKey}
               selectedFace={selectedFace}
-              selectedCubie={selectedCubie}
               rotatingFace={rotatingFace}
               rotationDirection={rotationDirection}
               cubeState={cubeState}
-              onCubieClick={(face, index) => {
+              onCubieClick={(face) => {
                 setSelectedFace(face)
-                setSelectedCubie(index)
               }}
               onRotationComplete={handleRotationComplete}
             />
@@ -67,7 +75,7 @@ export default function Home() {
               <h2 className="text-xl font-semibold mb-4">Controls</h2>
 
               <div className="mb-4">
-                <h3 className="text-md font-medium mb-2">Select Face</h3>
+                <h3 className="text-md font-medium mb-2">Select Face to Edit</h3>
                 <Select onValueChange={(value) => setSelectedFace(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a face" />
@@ -85,30 +93,14 @@ export default function Home() {
 
               {selectedFace && (
                 <div className="mb-4">
-                  <h3 className="text-md font-medium mb-2">Select Cubie</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((index) => (
-                      <Button
-                        key={index}
-                        variant={selectedCubie === index ? "default" : "outline"}
-                        onClick={() => setSelectedCubie(index)}
-                        className="h-10 w-10"
-                      >
-                        {index + 1}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedFace && selectedCubie !== null && (
-                <div className="mb-4">
-                  <h3 className="text-md font-medium mb-2">Change Color</h3>
-                  <ColorPicker
-                    selectedColor={
-                      selectedFace && selectedCubie !== null ? cubeState[selectedFace][selectedCubie] : null
-                    }
-                    onColorSelect={handleColorSelect}
+                  <h3 className="text-md font-medium mb-2">Edit Face Colors</h3>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Click on a square to change its color. Center squares cannot be changed.
+                  </p>
+                  <CubeFaceEditor
+                    face={selectedFace}
+                    colors={cubeState[selectedFace]}
+                    onColorChange={(index, color) => handleFaceColorChange(selectedFace, index, color)}
                   />
                 </div>
               )}
@@ -153,9 +145,9 @@ export default function Home() {
             <div className="bg-white p-4 rounded-lg shadow-md">
               <h2 className="text-xl font-semibold mb-2">Instructions</h2>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Select a face and cubie to change its color</li>
+                <li>Click on a face in the 3D view to select it for editing</li>
+                <li>Use the 2D face editor to change colors (center squares cannot be changed)</li>
                 <li>Use the rotation controls to turn faces</li>
-                <li>The letter in the center of each face represents the first letter of its color</li>
                 <li>Drag the cube to rotate the entire view</li>
               </ul>
             </div>
