@@ -7,6 +7,7 @@ class CubeFaceEditor {
         this.selectedIndex = null;
         
         this.render();
+        this.setupColorPickerModal();
     }
     
     render() {
@@ -39,10 +40,36 @@ class CubeFaceEditor {
         }
     }
     
+    setupColorPickerModal() {
+        const modal = document.getElementById('color-picker-modal');
+        const closeButton = document.getElementById('close-color-picker');
+        
+        // Set up close button event listener (only once)
+        closeButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            this.selectedIndex = null;
+        });
+        
+        // Add click event to close modal when clicking outside the content
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                this.selectedIndex = null;
+            }
+        });
+        
+        // Add escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                modal.classList.add('hidden');
+                this.selectedIndex = null;
+            }
+        });
+    }
+    
     showColorPicker() {
         const modal = document.getElementById('color-picker-modal');
         const colorPicker = document.getElementById('color-picker');
-        const closeButton = document.getElementById('close-color-picker');
         
         // Show modal
         modal.classList.remove('hidden');
@@ -67,12 +94,6 @@ class CubeFaceEditor {
                     modal.classList.add('hidden');
                 }
             });
-        });
-        
-        // Close button
-        closeButton.addEventListener('click', () => {
-            modal.classList.add('hidden');
-            this.selectedIndex = null;
         });
     }
     
