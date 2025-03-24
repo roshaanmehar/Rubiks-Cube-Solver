@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Rubik's Cube Visualizer</h1>
+        <div class="content">
+            <div class="cube-container" id="cube-container"></div>
+            <div class="controls">
+                <div class="control-panel">
+                    <h2>Controls</h2>
+                    <div class="select-container">
+                        <label for="face-select">Select Face to Edit</label>
+                        <select id="face-select">
+                            <option value="">Select a face</option>
+                            <option value="front">Front (Red)</option>
+                            <option value="back">Back (Orange)</option>
+                            <option value="up">Up (White)</option>
+                            <option value="down">Down (Yellow)</option>
+                            <option value="left">Left (Green)</option>
+                            <option value="right">Right (Blue)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="face-editor" class="face-editor hidden">
+                        <h3>Edit Face Colors</h3>
+                        <p class="small">Click on a square to change its color. Center squares cannot be changed.</p>
+                        <div class="face-grid" id="face-grid"></div>
+                    </div>
+                    
+                    <div class="rotation-controls">
+                        <h3>Rotate Face</h3>
+                        <div class="select-container">
+                            <label for="rotation-direction">Direction</label>
+                            <select id="rotation-direction">
+                                <option value="clockwise">Clockwise</option>
+                                <option value="counterclockwise">Counter-Clockwise</option>
+                            </select>
+                        </div>
+                        
+                        <div class="button-grid">
+                            <button id="rotate-front">Front</button>
+                            <button id="rotate-back">Back</button>
+                            <button id="rotate-up">Up</button>
+                            <button id="rotate-down">Down</button>
+                            <button id="rotate-left">Left</button>
+                            <button id="rotate-right">Right</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-panel">
+                    <h2>Instructions</h2>
+                    <ul class="instructions">
+                        <li>Click on a face in the 3D view to select it for editing</li>
+                        <li>Use the 2D face editor to change colors (center squares cannot be changed)</li>
+                        <li>Use the rotation controls to turn faces</li>
+                        <li>Drag the cube to rotate the entire view</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color picker modal -->
+    <div id="color-picker-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Select Color</h3>
+            <div id="color-picker" class="color-picker">
+                <div class="color-option" style="background-color: #FF0000;" data-color="0xff0000" data-name="Red"></div>
+                <div class="color-option" style="background-color: #FFA500;" data-color="0xffa500" data-name="Orange"></div>
+                <div class="color-option" style="background-color: #FFFFFF;" data-color="0xffffff" data-name="White"></div>
+                <div class="color-option" style="background-color: #FFFF00;" data-color="0xffff00" data-name="Yellow"></div>
+                <div class="color-option" style="background-color: #00FF00;" data-color="0x00ff00" data-name="Green"></div>
+                <div class="color-option" style="background-color: #0000FF;" data-color="0x0000ff" data-name="Blue"></div>
+            </div>
+            <button id="close-color-picker">Cancel</button>
+        </div>
+    </div>
+
+    <script src="rubiksCube.js"></script>
+    <script src="cubeFaceEditor.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
