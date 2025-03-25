@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Two Iterations: White Center & Yellow Center</title>
+  <meta charset="UTF-8"/>
+  <title>Two Nets (Unlinked W/Y, Linked B/O/R/G)</title>
   <style>
     body {
-      margin: 0; 
-      padding: 0; 
+      margin: 0;
+      padding: 0;
       font-family: Arial, sans-serif;
       background-color: #f0f0f0;
     }
@@ -15,55 +15,60 @@
       margin: 0 auto;
       padding: 20px;
     }
-    h1 { text-align: center; margin-bottom: 20px; }
-
-    /* We'll place each iteration in its own container, each 9x9. */
-    .iteration-container {
-      display: inline-block;
-      vertical-align: top;
-      margin: 10px;
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
     }
-    .row {
+
+    .nets {
       display: flex;
+      gap: 30px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .net-container {
+      text-align: center;
+    }
+    .grid9x9 {
+      display: grid;
+      grid-template-columns: repeat(9, 40px);
+      grid-template-rows: repeat(9, 40px);
+      gap: 1px;
     }
     .cell {
-      width: 40px; 
+      width: 40px;
       height: 40px;
-      border: 1px solid #333; 
-      box-sizing: border-box;
-      margin: 1px;
-      display: flex; 
-      align-items: center; 
+      border: 1px solid #333;
+      display: flex;
+      align-items: center;
       justify-content: center;
-      font-size: 11px;
-      color: rgba(0,0,0,0.6);
+      font-size: 12px;
+      color: rgba(0,0,0,0.7);
       cursor: pointer;
+      box-sizing: border-box;
     }
-    /* Center stickers get a heavier text style, and are not clickable. */
+    .empty {
+      border: none;
+      cursor: default;
+    }
     .center {
       font-weight: bold;
       color: rgba(0,0,0,0.9);
       cursor: default;
     }
-    /* Empty (no label) cells – or placeholders – are invisible. */
-    .empty {
-      border: none;
-      cursor: default;
-    }
 
-    /* Controls / rotation buttons */
     .controls {
-      margin-top: 20px;
+      margin-top: 25px;
       display: flex;
+      gap: 20px;
+      justify-content: center;
       flex-wrap: wrap;
-      gap: 15px;
     }
     .control-panel {
-      background: #fff;
+      background-color: #fff;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       padding: 15px;
-      flex: 1;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
       min-width: 280px;
     }
     .buttons {
@@ -73,26 +78,26 @@
       margin-top: 10px;
     }
     button {
-      padding: 8px; 
-      border: none; 
+      padding: 8px;
       border-radius: 4px;
-      background-color: #4299e1; 
-      color: #fff; 
-      cursor: pointer; 
+      border: none;
+      background-color: #4299e1;
+      color: #fff;
+      cursor: pointer;
       font-weight: 500;
     }
     button:hover {
       background-color: #3182ce;
     }
 
-    /* Modal for color picker */
+    /* Color Picker Modal */
     .modal {
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top:0; left:0;
+      width:100%; height:100%;
       background-color: rgba(0,0,0,0.5);
-      display: flex; 
-      justify-content: center; 
+      display: flex;
+      justify-content: center;
       align-items: center;
       z-index: 999;
     }
@@ -109,8 +114,7 @@
       margin-bottom: 15px;
     }
     .color-option {
-      width: 40px; 
-      height: 40px;
+      width: 40px; height: 40px;
       border: 1px solid #e2e8f0;
       border-radius: 4px;
       cursor: pointer;
@@ -129,36 +133,40 @@
   </style>
 </head>
 <body>
+
 <div class="container">
-  <h1>Two Linked Iterations (White Center & Yellow Center)</h1>
+  <h1>Two Nets (Unlinked W/Y, Linked B/O/R/G)</h1>
 
-  <!-- Two side-by-side grids -->
-  <div class="iteration-container">
-    <h2>White-Center Iteration</h2>
-    <div id="white-side"></div>
-  </div>
+  <!-- Two 9x9 Nets -->
+  <div class="nets">
+    <!-- Left: White-Center Layout -->
+    <div class="net-container">
+      <h2>White-Center Layout</h2>
+      <div id="whiteNet" class="grid9x9"></div>
+    </div>
 
-  <div class="iteration-container">
-    <h2>Yellow-Center Iteration</h2>
-    <div id="yellow-side"></div>
+    <!-- Right: Yellow-Center Layout -->
+    <div class="net-container">
+      <h2>Yellow-Center Layout</h2>
+      <div id="yellowNet" class="grid9x9"></div>
+    </div>
   </div>
 
   <!-- Controls -->
   <div class="controls">
     <div class="control-panel">
-      <h2>Rotate a Face (3×3 Matrix)</h2>
-      <p>These faces are not “connected.” Each face is its own 3×3. Rotating one face does <em>not</em> affect any others. But rotating from either iteration updates <em>both</em> displays because they share the same data.</p>
-
-      <label for="rotationDir">Rotation Direction:</label>
-      <select id="rotationDir">
-        <option value="clockwise">Clockwise</option>
-        <option value="counterclockwise">Counter-Clockwise</option>
+      <h2>Rotate a Face</h2>
+      <p>B/O/R/G are shared across both nets; W/Y are local to each net.</p>
+      <label for="rotateDir">Direction:</label>
+      <select id="rotateDir">
+        <option value="cw">Clockwise</option>
+        <option value="ccw">Counterclockwise</option>
       </select>
 
       <div class="buttons">
-        <button data-face="w">Rotate W</button>
         <button data-face="b">Rotate B</button>
         <button data-face="o">Rotate O</button>
+        <button data-face="w">Rotate W</button>
         <button data-face="r">Rotate R</button>
         <button data-face="g">Rotate G</button>
         <button data-face="y">Rotate Y</button>
@@ -167,238 +175,198 @@
     <div class="control-panel">
       <h2>Instructions</h2>
       <ul>
-        <li>Two 9×9 layouts. The left has White center, right has Yellow center.</li>
-        <li>Click any non-center sticker to recolor; updates appear in both layouts.</li>
-        <li>Use buttons to rotate a face’s 3×3 matrix. That rotation also appears in both layouts.</li>
-        <li>No adjacency logic – each face is an independent matrix.</li>
+        <li>No adjacency: each face is an independent 3×3 block.</li>
+        <li>B/O/R/G faces are linked between nets; W/Y are not.</li>
+        <li>Digits (1–9) stay fixed in place, but letters rotate among them.</li>
+        <li>Click a non‐center cell to recolor the letter.</li>
       </ul>
     </div>
   </div>
 </div>
 
 <!-- Color Picker Modal -->
-<div id="colorPickerModal" class="modal hidden">
+<div id="colorModal" class="modal hidden">
   <div class="modal-content">
     <h3>Select a Color</h3>
     <div class="color-picker">
       <!-- Red -->
-      <div class="color-option" style="background-color:#ff0000" data-color="0xff0000"></div>
+      <div class="color-option" style="background-color:#ff0000" data-letter="r"></div>
       <!-- Orange -->
-      <div class="color-option" style="background-color:#ffa500" data-color="0xffa500"></div>
+      <div class="color-option" style="background-color:#ffa500" data-letter="o"></div>
       <!-- White -->
-      <div class="color-option" style="background-color:#ffffff" data-color="0xffffff"></div>
+      <div class="color-option" style="background-color:#ffffff" data-letter="w"></div>
       <!-- Yellow -->
-      <div class="color-option" style="background-color:#ffff00" data-color="0xffff00"></div>
+      <div class="color-option" style="background-color:#ffff00" data-letter="y"></div>
       <!-- Green -->
-      <div class="color-option" style="background-color:#00ff00" data-color="0x00ff00"></div>
+      <div class="color-option" style="background-color:#00ff00" data-letter="g"></div>
       <!-- Blue -->
-      <div class="color-option" style="background-color:#0000ff" data-color="0x0000ff"></div>
+      <div class="color-option" style="background-color:#0000ff" data-letter="b"></div>
     </div>
     <button id="cancelColor" class="cancel-btn">Cancel</button>
   </div>
 </div>
 
 <script>
-/****************************************************************
- * 1) DATA STRUCTURES
- ****************************************************************/
-// We have 6 faces: W, B, O, R, G, Y
-// Each face is a 3×3 array (9 elements). We'll store them in one
-// data object so that rotating or recoloring in "White iteration"
-// also updates the "Yellow iteration."
+/**********************************************************************
+ * 1) We store each net as a 9x9 array of objects: { digit, letter } or null.
+ *    The user-provided layout strings are turned into these arrays.
+ **********************************************************************/
 
-// Initialize each face with a single color (for demo). 
-// You can adapt if you want each sticker different, etc.
-const faceState = {
-  w: Array(9).fill(0xffffff), // White
-  b: Array(9).fill(0x0000ff), // Blue
-  o: Array(9).fill(0xffa500), // Orange
-  r: Array(9).fill(0xff0000), // Red
-  g: Array(9).fill(0x00ff00), // Green
-  y: Array(9).fill(0xffff00), // Yellow
-};
-
-// Standard 3×3 rotation: index mapping
-function rotate3x3(arr, clockwise = true) {
-  const old = [...arr];
-  if (clockwise) {
-    arr[0] = old[6]; arr[1] = old[3]; arr[2] = old[0];
-    arr[3] = old[7]; arr[4] = old[4]; arr[5] = old[1];
-    arr[6] = old[8]; arr[7] = old[5]; arr[8] = old[2];
-  } else {
-    arr[0] = old[2]; arr[1] = old[5]; arr[2] = old[8];
-    arr[3] = old[1]; arr[4] = old[4]; arr[5] = old[7];
-    arr[6] = old[0]; arr[7] = old[3]; arr[8] = old[6];
-  }
-}
-
-/****************************************************************
- * 2) LAYOUT DEFINITIONS
- ****************************************************************/
-/*
-   White-Center iteration: 9 rows × 9 columns
-   Row-by-row from your text (using placeholders for empty columns):
-   
-   Row0: [ "", "", "", "b1", "b2", "b3", "", "", "" ]
-   Row1: [ "", "", "", "b4", "b5", "b6", "", "", "" ]
-   Row2: [ "", "", "", "b7", "b8", "b9", "", "", "" ]
-   Row3: [ "o1","o2","o3", "w1","w2","w3", "r1","r2","r3" ]
-   Row4: [ "o4","o5","o6", "w4","w5","w6", "r4","r5","r6" ]
-   Row5: [ "o7","o8","o9", "w7","w8","w9", "r7","r8","r9" ]
-   Row6: [ "", "", "", "g1", "g2", "g3", "", "", "" ]
-   Row7: [ "", "", "", "g4", "g5", "g6", "", "", "" ]
-   Row8: [ "", "", "", "g7", "g8", "g9", "", "", "" ]
-
-   Yellow-Center iteration:
-   Row0: [ "", "", "", "g1", "g2", "g3", "", "", "" ]
-   Row1: [ "", "", "", "g4", "g5", "g6", "", "", "" ]
-   Row2: [ "", "", "", "g7", "g8", "g9", "", "", "" ]
-   Row3: [ "o3","o6","o9", "y1","y2","y3", "r7","r4","r1" ]
-   Row4: [ "o2","o5","o8", "y4","y5","y6", "r8","r5","r2" ]
-   Row5: [ "o1","o4","o7", "y7","y8","y9", "r9","r6","r3" ]
-   Row6: [ "", "", "", "b9", "b8", "b7", "", "", "" ]
-   Row7: [ "", "", "", "b6", "b5", "b4", "", "", "" ]
-   Row8: [ "", "", "", "b3", "b2", "b1", "", "", "" ]
-*/
-
-const whiteLayout = [
-  ["","","","b1","b2","b3","","",""],
-  ["","","","b4","b5","b6","","",""],
-  ["","","","b7","b8","b9","","",""],
-  ["o1","o2","o3","w1","w2","w3","r1","r2","r3"],
-  ["o4","o5","o6","w4","w5","w6","r4","r5","r6"],
-  ["o7","o8","o9","w7","w8","w9","r7","r8","r9"],
+// White-Center strings:
+const whiteStrings = [
+  // row0
+  ["","","","b9","b8","b7","","",""],
+  // row1
+  ["","","","b6","b5","b4","","",""],
+  // row2
+  ["","","","b3","b2","b1","","",""],
+  // row3
+  ["o7","o4","o1","w1","w2","w3","r3","r6","r9"],
+  // row4
+  ["o8","o5","o2","w4","w5","w6","r2","r5","r8"],
+  // row5
+  ["o9","o6","o3","w7","w8","w9","r1","r4","r7"],
+  // row6
   ["","","","g1","g2","g3","","",""],
+  // row7
   ["","","","g4","g5","g6","","",""],
+  // row8
   ["","","","g7","g8","g9","","",""]
 ];
 
-const yellowLayout = [
+// Yellow-Center strings:
+const yellowStrings = [
+  // row0
   ["","","","g1","g2","g3","","",""],
+  // row1
   ["","","","g4","g5","g6","","",""],
+  // row2
   ["","","","g7","g8","g9","","",""],
+  // row3
   ["o3","o6","o9","y1","y2","y3","r7","r4","r1"],
+  // row4
   ["o2","o5","o8","y4","y5","y6","r8","r5","r2"],
+  // row5
   ["o1","o4","o7","y7","y8","y9","r9","r6","r3"],
+  // row6
   ["","","","b9","b8","b7","","",""],
+  // row7
   ["","","","b6","b5","b4","","",""],
+  // row8
   ["","","","b3","b2","b1","","",""]
 ];
 
-/****************************************************************
- * 3) MAPPING LABELS -> (FACE, INDEX)
- ****************************************************************/
-// For example, label "b1" means face='b', index=0; "b2" => index=1, etc.
-// "w5" => face='w', index=4, "g9" => face='g', index=8, and so on.
-function labelToFaceIndex(label) {
-  // label is like "b1", "o7", "y9", "w5", etc. 
-  // If empty or invalid, return null.
-  if (!label) return null; 
-
-  // First char is face letter; rest is the index
-  // e.g. "b1" => letter='b', n='1' => index=0
-  const face = label[0]; // 'b','o','w','r','g','y'
-  const numStr = label.slice(1); 
-  const n = parseInt(numStr, 10);
-  if (isNaN(n) || n < 1 || n > 9) return null;
-
-  // face array index is n-1
-  return { face, index: n - 1 };
+/** Convert an array of 9 strings to a 9x9 grid: { digit, letter } or null. */
+function parseLayout(rowsOfLabels) {
+  const grid = [];
+  for (let r=0; r<9; r++) {
+    const row = [];
+    for (let c=0; c<9; c++) {
+      const lab = rowsOfLabels[r][c] || "";
+      if (!lab) {
+        row.push(null);
+      } else {
+        const letter = lab[0];
+        const digit = parseInt(lab.slice(1), 10);
+        row.push({ digit, letter });
+      }
+    }
+    grid.push(row);
+  }
+  return grid;
 }
 
-// The center sticker is always index=4 for each face (the middle of 3×3).
-// So if label => index=4, that cell is "center" (non-clickable).
+// Create the arrays
+let whiteNet = parseLayout(whiteStrings);
+let yellowNet= parseLayout(yellowStrings);
 
-/****************************************************************
- * 4) RENDER FUNCTIONS
- ****************************************************************/
-function renderLayout(containerId, layout) {
+/**********************************************************************
+ * 2) RENDERING: We'll show each net in a 9x9 <div>.
+ **********************************************************************/
+function renderNet(containerId, netData) {
   const container = document.getElementById(containerId);
-  container.innerHTML = ""; // Clear
+  container.innerHTML = "";
 
-  for (let row = 0; row < 9; row++) {
-    const rowDiv = document.createElement("div");
-    rowDiv.className = "row";
+  for (let r=0; r<9; r++) {
+    for (let c=0; c<9; c++) {
+      const cellData = netData[r][c];
+      const cellDiv = document.createElement("div");
+      cellDiv.className = "cell";
 
-    for (let col = 0; col < 9; col++) {
-      const label = layout[row][col];
-      if (!label) {
-        // Empty
-        const cell = document.createElement("div");
-        cell.className = "cell empty";
-        rowDiv.appendChild(cell);
+      if (!cellData) {
+        cellDiv.classList.add("empty");
+        container.appendChild(cellDiv);
         continue;
       }
-
-      // We have a sticker label like "b1"
-      const map = labelToFaceIndex(label);
-      if (!map) {
-        // If something invalid, just treat as empty
-        const cell = document.createElement("div");
-        cell.className = "cell empty";
-        rowDiv.appendChild(cell);
-        continue;
+      // We have { digit, letter }
+      const { digit, letter } = cellData;
+      if (digit === 5) {
+        cellDiv.classList.add("center");
       }
+      // letter -> background color
+      cellDiv.style.backgroundColor = letterToColor(letter);
+      // text: letter+digit, e.g. "b9"
+      cellDiv.textContent = letter + digit;
 
-      const { face, index } = map;
-      const cell = document.createElement("div");
-      cell.className = "cell";
-
-      // If index=4 => center
-      if (index === 4) {
-        cell.classList.add("center");
-      }
-
-      // Show background color from faceState
-      const colorVal = faceState[face][index];
-      const hex = colorVal.toString(16).padStart(6,"0");
-      cell.style.backgroundColor = "#" + hex;
-
-      // Label text is exactly what's in layout: e.g. "b1", "w5", etc.
-      cell.textContent = label;
-
-      // If it's center, don't let user recolor
-      if (index !== 4) {
-        cell.addEventListener("click", () => {
-          openColorPicker(face, index);
+      // Only recolor if not center
+      if (digit !== 5) {
+        cellDiv.addEventListener("click", () => {
+          openColorPicker(r, c, containerId);
         });
       }
 
-      rowDiv.appendChild(cell);
+      container.appendChild(cellDiv);
     }
-    container.appendChild(rowDiv);
   }
 }
 
-// Render both iterations
 function renderAll() {
-  renderLayout("white-side", whiteLayout);
-  renderLayout("yellow-side", yellowLayout);
+  renderNet("whiteNet", whiteNet);
+  renderNet("yellowNet", yellowNet);
 }
 
-/****************************************************************
- * 5) COLOR PICKER (MODAL)
- ****************************************************************/
-let selectedFace = null;
-let selectedIndex = null;
+// Helper: letter -> color
+function letterToColor(letter) {
+  switch(letter) {
+    case 'b': return "#0000ff";
+    case 'o': return "#ffa500";
+    case 'r': return "#ff0000";
+    case 'g': return "#00ff00";
+    case 'w': return "#ffffff";
+    case 'y': return "#ffff00";
+    default : return "#999";
+  }
+}
 
-const colorPickerModal = document.getElementById("colorPickerModal");
+/**********************************************************************
+ * 3) COLOR PICKER / RECOLOR
+ *    If the letter is b/o/r/g, we mirror in both nets; if w or y, unlinked.
+ **********************************************************************/
+let selectedRow = null;
+let selectedCol = null;
+let selectedNetId= null;
+
+const colorModal = document.getElementById("colorModal");
 const cancelColorBtn = document.getElementById("cancelColor");
-const colorOptions = document.querySelectorAll(".color-option");
+const colorOpts = document.querySelectorAll(".color-option");
 
-function openColorPicker(face, index) {
-  selectedFace = face;
-  selectedIndex = index;
-  colorPickerModal.classList.remove("hidden");
+function openColorPicker(r, c, netId) {
+  selectedRow = r;
+  selectedCol= c;
+  selectedNetId= netId;
+  colorModal.classList.remove("hidden");
 }
+
 function closeColorPicker() {
-  selectedFace = null;
-  selectedIndex = null;
-  colorPickerModal.classList.add("hidden");
+  selectedRow = null;
+  selectedCol= null;
+  selectedNetId= null;
+  colorModal.classList.add("hidden");
 }
+
 cancelColorBtn.addEventListener("click", closeColorPicker);
-colorPickerModal.addEventListener("click", (e) => {
-  if (e.target === colorPickerModal) {
+colorModal.addEventListener("click", (e) => {
+  if (e.target === colorModal) {
     closeColorPicker();
   }
 });
@@ -407,42 +375,190 @@ document.addEventListener("keydown", (e) => {
     closeColorPicker();
   }
 });
-colorOptions.forEach(opt => {
+
+colorOpts.forEach(opt => {
   opt.addEventListener("click", () => {
-    if (selectedFace !== null && selectedIndex !== null) {
-      const colorVal = parseInt(opt.dataset.color, 16);
-      // Update the face
-      faceState[selectedFace][selectedIndex] = colorVal;
-      // Re-render both
-      renderAll();
+    if (selectedRow === null) return;
+    const newLetter = opt.dataset.letter;  // "r","b","g","y", etc.
+
+    // Get the appropriate net array
+    let netData, otherNet;
+    if (selectedNetId === "whiteNet") {
+      netData = whiteNet;
+      otherNet= yellowNet;
+    } else {
+      netData = yellowNet;
+      otherNet= whiteNet;
     }
+
+    // The cell we're recoloring
+    const cell = netData[selectedRow][selectedCol];
+    if (!cell) return;
+    const oldLetter = cell.letter;
+
+    cell.letter = newLetter; // update this net
+
+    // If the new letter is b/o/r/g => mirror to the other net's same cell
+    // If old letter was also b/o/r/g, we remove it from the other net if we changed to w/y
+    const isLinkedLetterNew = ["b","o","r","g"].includes(newLetter);
+    const isLinkedLetterOld = ["b","o","r","g"].includes(oldLetter);
+
+    const otherCell = otherNet[selectedRow][selectedCol];
+    if (otherCell) {
+      if (isLinkedLetterNew) {
+        // set other to the same letter
+        otherCell.letter = newLetter;
+      } else {
+        // new letter is W or Y => we do NOT mirror
+        // If old was linked, remove it from the other side
+        if (isLinkedLetterOld && otherCell.letter === oldLetter) {
+          otherCell.letter = null; // or keep it? We'll set null
+        }
+      }
+    }
+
+    renderAll();
     closeColorPicker();
   });
 });
 
-/****************************************************************
- * 6) ROTATION CONTROLS
- ****************************************************************/
-document.getElementById("rotationDir").addEventListener("change", (e) => {
-  rotationDirection = e.target.value; 
-});
-let rotationDirection = "clockwise"; // default
+/**********************************************************************
+ * 4) ROTATION
+ *   We define a 3×3 index layout for each face in each net, so we can
+ *   rotate those squares in place. Digits remain fixed, letters rotate
+ *   among them. We do a standard 90° mapping:
+ *       cw: 0->6, 1->3, 2->0, 3->7, 4->4, 5->1, 6->8, 7->5, 8->2
+ *       ccw is the reverse.
+ *
+ *   For each face letter (b, o, r, g, w, y), we store the 9 squares in
+ *   row-major order of that face. Then rotating is just permuting the
+ *   'letter' fields among those 9 squares.
+ **********************************************************************/
 
-const buttons = document.querySelectorAll("button[data-face]");
-buttons.forEach(btn => {
+// index map for a 3x3 rotation:
+const CW_MAP  = [6,3,0, 7,4,1, 8,5,2]; // 0->6,1->3,2->0,3->7,etc.
+const CCW_MAP = [2,5,8, 1,4,7, 0,3,6]; // inverse
+
+// We'll define the positions of each face's 3×3 block in the White net:
+const facePositionsWhite = {
+  b: [ // top-left is index=0, top-middle=1, etc., row-major
+       // row0 col3 => index0, row0 col4 =>1, row0 col5=>2
+    {r:0,c:3},{r:0,c:4},{r:0,c:5},
+    {r:1,c:3},{r:1,c:4},{r:1,c:5},
+    {r:2,c:3},{r:2,c:4},{r:2,c:5}
+  ],
+  o: [
+    {r:3,c:0},{r:3,c:1},{r:3,c:2},
+    {r:4,c:0},{r:4,c:1},{r:4,c:2},
+    {r:5,c:0},{r:5,c:1},{r:5,c:2}
+  ],
+  w: [
+    {r:3,c:3},{r:3,c:4},{r:3,c:5},
+    {r:4,c:3},{r:4,c:4},{r:4,c:5},
+    {r:5,c:3},{r:5,c:4},{r:5,c:5}
+  ],
+  r: [
+    {r:3,c:6},{r:3,c:7},{r:3,c:8},
+    {r:4,c:6},{r:4,c:7},{r:4,c:8},
+    {r:5,c:6},{r:5,c:7},{r:5,c:8}
+  ],
+  g: [
+    {r:6,c:3},{r:6,c:4},{r:6,c:5},
+    {r:7,c:3},{r:7,c:4},{r:7,c:5},
+    {r:8,c:3},{r:8,c:4},{r:8,c:5}
+  ],
+  y: [] // White net has no 'y' block. We'll keep it empty.
+};
+
+// For the Yellow net:
+const facePositionsYellow = {
+  g: [
+    {r:0,c:3},{r:0,c:4},{r:0,c:5},
+    {r:1,c:3},{r:1,c:4},{r:1,c:5},
+    {r:2,c:3},{r:2,c:4},{r:2,c:5}
+  ],
+  o: [
+    {r:3,c:0},{r:3,c:1},{r:3,c:2},
+    {r:4,c:0},{r:4,c:1},{r:4,c:2},
+    {r:5,c:0},{r:5,c:1},{r:5,c:2}
+  ],
+  y: [
+    {r:3,c:3},{r:3,c:4},{r:3,c:5},
+    {r:4,c:3},{r:4,c:4},{r:4,c:5},
+    {r:5,c:3},{r:5,c:4},{r:5,c:5}
+  ],
+  r: [
+    {r:3,c:6},{r:3,c:7},{r:3,c:8},
+    {r:4,c:6},{r:4,c:7},{r:4,c:8},
+    {r:5,c:6},{r:5,c:7},{r:5,c:8}
+  ],
+  b: [
+    {r:6,c:3},{r:6,c:4},{r:6,c:5},
+    {r:7,c:3},{r:7,c:4},{r:7,c:5},
+    {r:8,c:3},{r:8,c:4},{r:8,c:5}
+  ],
+  w: [] // Yellow net has no 'w' block
+};
+
+/** Rotate the letters among the 9 squares that define one face. */
+function rotateFace(netData, positions, clockwise) {
+  if (positions.length !== 9) return;
+
+  // 1) read out the 9 letters
+  const oldLetters = positions.map(pos => {
+    const cell = netData[pos.r][pos.c];
+    return cell ? cell.letter : null;
+  });
+
+  const map = clockwise ? CW_MAP : CCW_MAP;
+  // 2) place them in new spots
+  for (let i=0; i<9; i++) {
+    const newIndex = map[i];
+    const pos = positions[newIndex];
+    if (!pos) continue;
+    const cell = netData[pos.r][pos.c];
+    if (cell) {
+      cell.letter = oldLetters[i];
+    }
+  }
+}
+
+/**********************************************************************
+ * 5) HOOKING UP ROTATION BUTTONS
+ **********************************************************************/
+const rotateDirSelect = document.getElementById("rotateDir");
+let rotationDir = "cw";
+rotateDirSelect.addEventListener("change", () => {
+  rotationDir = rotateDirSelect.value; // "cw" or "ccw"
+});
+
+// We have 6 faces: B,O,W,R,G,Y. But W only exists in the White net, Y only in Yellow net, and B/O/R/G exist in both (linked).
+document.querySelectorAll("[data-face]").forEach(btn => {
   btn.addEventListener("click", () => {
-    const face = btn.dataset.face; // 'w','b','o','r','g','y'
-    const cw = (rotationDirection === "clockwise");
-    rotate3x3(faceState[face], cw);
+    const f = btn.dataset.face; // e.g. "b","o","w","r","g","y"
+    const cw = (rotationDir === "cw");
+
+    if (f==='w') {
+      // Rotate White in the White net only
+      rotateFace(whiteNet, facePositionsWhite.w, cw);
+    } else if (f==='y') {
+      // Rotate Yellow in the Yellow net only
+      rotateFace(yellowNet, facePositionsYellow.y, cw);
+    } else {
+      // B, O, R, G => rotate in both nets
+      // but each net uses its own facePositions map
+      if (facePositionsWhite[f]) rotateFace(whiteNet, facePositionsWhite[f], cw);
+      if (facePositionsYellow[f]) rotateFace(yellowNet, facePositionsYellow[f], cw);
+    }
+
     renderAll();
   });
 });
 
-/****************************************************************
- * 7) INIT
- ****************************************************************/
+/**********************************************************************
+ * 6) INIT & RENDER
+ **********************************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-  // Initially render
   renderAll();
 });
 </script>
