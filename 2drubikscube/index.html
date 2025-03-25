@@ -212,8 +212,230 @@
 </div>
 
 <script>
-// The rest of the script remains the same, with the critical change being the `setColor` function:
+/*********************************************************************
+ * 1) FACE ARRAYS
+ *    We have 9 squares for each face. We'll store them as arrays of color codes (strings).
+ *    For each face in [B,O,R,G], we have two arrays: one for White net, one for Yellow net.
+ *    White net also has W, Yellow net also has Y, both unlinked.
+ *********************************************************************/
+// White net
+let bW = Array(9).fill("#0000ff");  // Blue (white side)
+let oW = Array(9).fill("#ffa500");  // Orange
+let rW = Array(9).fill("#ff0000");  // Red
+let gW = Array(9).fill("#00ff00");  // Green
+let wW = Array(9).fill("#ffffff");  // White, unlinked
 
+// Yellow net
+let bY = Array(9).fill("#0000ff");  // Blue (yellow side)
+let oY = Array(9).fill("#ffa500");  // Orange
+let rY = Array(9).fill("#ff0000");  // Red
+let gY = Array(9).fill("#00ff00");  // Green
+let yY = Array(9).fill("#ffff00");  // Yellow, unlinked
+
+/*********************************************************************
+ * 2) NET LAYOUTS: White net & Yellow net (each 9x9)
+ *    Instead of labeling squares, each cell is an object {face, index}
+ *    We'll store them in 9x9 arrays (whiteLayout, yellowLayout).
+ *********************************************************************/
+// White net layout
+const whiteLayout = [
+  // row0
+  [null,null,null, {face:'bW',i:0},{face:'bW',i:1},{face:'bW',i:2}, null,null,null],
+  // row1
+  [null,null,null, {face:'bW',i:3},{face:'bW',i:4},{face:'bW',i:5}, null,null,null],
+  // row2
+  [null,null,null, {face:'bW',i:6},{face:'bW',i:7},{face:'bW',i:8}, null,null,null],
+  // row3
+  [{face:'oW',i:0},{face:'oW',i:1},{face:'oW',i:2}, {face:'wW',i:0},{face:'wW',i:1},{face:'wW',i:2}, {face:'rW',i:0},{face:'rW',i:1},{face:'rW',i:2}],
+  // row4
+  [{face:'oW',i:3},{face:'oW',i:4},{face:'oW',i:5}, {face:'wW',i:3},{face:'wW',i:4},{face:'wW',i:5}, {face:'rW',i:3},{face:'rW',i:4},{face:'rW',i:5}],
+  // row5
+  [{face:'oW',i:6},{face:'oW',i:7},{face:'oW',i:8}, {face:'wW',i:6},{face:'wW',i:7},{face:'wW',i:8}, {face:'rW',i:6},{face:'rW',i:7},{face:'rW',i:8}],
+  // row6
+  [null,null,null, {face:'gW',i:0},{face:'gW',i:1},{face:'gW',i:2}, null,null,null],
+  // row7
+  [null,null,null, {face:'gW',i:3},{face:'gW',i:4},{face:'gW',i:5}, null,null,null],
+  // row8
+  [null,null,null, {face:'gW',i:6},{face:'gW',i:7},{face:'gW',i:8}, null,null,null],
+];
+
+// Yellow net layout - Adjusted for proper 180° reflection
+const yellowLayout = [
+  // row0
+  [null,null,null, {face:'gY',i:8},{face:'gY',i:7},{face:'gY',i:6}, null,null,null],
+  // row1
+  [null,null,null, {face:'gY',i:5},{face:'gY',i:4},{face:'gY',i:3}, null,null,null],
+  // row2
+  [null,null,null, {face:'gY',i:2},{face:'gY',i:1},{face:'gY',i:0}, null,null,null],
+  // row3
+  [{face:'oY',i:8},{face:'oY',i:7},{face:'oY',i:6}, {face:'yY',i:0},{face:'yY',i:1},{face:'yY',i:2}, {face:'rY',i:8},{face:'rY',i:7},{face:'rY',i:6}],
+  // row4
+  [{face:'oY',i:5},{face:'oY',i:4},{face:'oY',i:3}, {face:'yY',i:3},{face:'yY',i:4},{face:'yY',i:5}, {face:'rY',i:5},{face:'rY',i:4},{face:'rY',i:3}],
+  // row5
+  [{face:'oY',i:2},{face:'oY',i:1},{face:'oY',i:0}, {face:'yY',i:6},{face:'yY',i:7},{face:'yY',i:8}, {face:'rY',i:2},{face:'rY',i:1},{face:'rY',i:0}],
+  // row6
+  [null,null,null, {face:'bY',i:8},{face:'bY',i:7},{face:'bY',i:6}, null,null,null],
+  // row7
+  [null,null,null, {face:'bY',i:5},{face:'bY',i:4},{face:'bY',i:3}, null,null,null],
+  // row8
+  [null,null,null, {face:'bY',i:2},{face:'bY',i:1},{face:'bY',i:0}, null,null,null],
+];
+
+/*********************************************************************
+ * 3) MAPPING FACE-NAME -> the actual 9-element array
+ *********************************************************************/
+function getFaceArray(faceName) {
+  switch(faceName){
+    case 'bW': return bW; 
+    case 'oW': return oW; 
+    case 'rW': return rW; 
+    case 'gW': return gW; 
+    case 'wW': return wW; 
+    case 'bY': return bY; 
+    case 'oY': return oY; 
+    case 'rY': return rY; 
+    case 'gY': return gY; 
+    case 'yY': return yY; 
+    default: return null;
+  }
+}
+
+/*********************************************************************
+ * 4) RENDER A 9×9 NET
+ *********************************************************************/
+function renderNet(containerId, layout) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error(`Container with ID "${containerId}" not found`);
+    return;
+  }
+  
+  container.innerHTML = "";
+  
+  for (let row = 0; row < 9; row++) {
+    for (let col = 0; col < 9; col++) {
+      const cellInfo = layout[row][col];
+      const cellDiv = document.createElement("div");
+      cellDiv.className = "cell";
+
+      if (!cellInfo) {
+        cellDiv.classList.add("empty");
+        container.appendChild(cellDiv);
+        continue;
+      }
+
+      const { face, i } = cellInfo; // e.g. face='bW', i=3
+      const arr = getFaceArray(face);
+      if (!arr) {
+        // if something is off
+        console.warn(`Face array not found for: ${face}`);
+        cellDiv.classList.add("empty");
+        container.appendChild(cellDiv);
+        continue;
+      }
+
+      if (i < 0 || i >= arr.length) {
+        console.warn(`Invalid index ${i} for face ${face}`);
+        cellDiv.classList.add("empty");
+        container.appendChild(cellDiv);
+        continue;
+      }
+
+      const color = arr[i];
+      cellDiv.style.backgroundColor = color;
+      cellDiv.textContent = i;
+
+      // Center? i===4
+      if (i === 4) {
+        cellDiv.classList.add("center");
+      } else {
+        cellDiv.addEventListener("click", () => {
+          openColorPicker(face, i);
+        });
+      }
+
+      container.appendChild(cellDiv);
+    }
+  }
+}
+
+/** Re-render both nets. */
+function renderAll() {
+  renderNet("whiteNet", whiteLayout);
+  renderNet("yellowNet", yellowLayout);
+}
+
+/*********************************************************************
+ * 5) COLOR PICKER (MODAL)
+ *********************************************************************/
+const modal = document.getElementById("colorModal");
+const cancelBtn = document.getElementById("cancelColor");
+const colorOpts = document.querySelectorAll(".color-option");
+
+let selectedFace = null, selectedIndex = null;
+
+function openColorPicker(faceName, idx) {
+  if (!modal) {
+    console.error("Color modal element not found");
+    return;
+  }
+  
+  selectedFace = faceName;
+  selectedIndex = idx;
+  modal.classList.remove("hidden");
+}
+
+function closeColorPicker() {
+  if (!modal) {
+    console.error("Color modal element not found");
+    return;
+  }
+  
+  selectedFace = null; 
+  selectedIndex = null;
+  modal.classList.add("hidden");
+}
+
+if (cancelBtn) {
+  cancelBtn.addEventListener("click", closeColorPicker);
+}
+
+if (modal) {
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeColorPicker();
+    }
+  });
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeColorPicker();
+  }
+});
+
+// When user picks a color
+colorOpts.forEach(opt => {
+  opt.addEventListener("click", () => {
+    if (!selectedFace || selectedIndex === null) return;
+    
+    const newColor = opt.dataset.color; // e.g. "#ff0000"
+    if (!newColor) {
+      console.warn("No color data found on clicked element");
+      return;
+    }
+    
+    setColor(selectedFace, selectedIndex, newColor);
+    renderAll();
+    closeColorPicker();
+  });
+});
+
+/*********************************************************************
+ * 6) setColor(faceName, index, newColor)
+ *    If faceName is among b/o/r/g, reflect it to the other net at index (8−i).
+ *    If faceName is wW or yY, do not reflect it to the other side.
+ *********************************************************************/
 function setColor(faceName, index, color) {
   const arr = getFaceArray(faceName);
   if (!arr) {
@@ -232,12 +454,6 @@ function setColor(faceName, index, color) {
   if (faceName === 'wW' || faceName === 'yY') return;
 
   // If face is among b/o/r/g => reflect to the other side at index 8 - i
-  const reflectionMap = {
-    0: 8, 1: 7, 2: 6,
-    3: 5, 4: 4, 5: 3,
-    6: 2, 7: 1, 8: 0
-  };
-
   if (faceName.length !== 2) {
     console.error(`Invalid face name format: ${faceName}`);
     return;
@@ -269,8 +485,8 @@ function setColor(faceName, index, color) {
     return;
   }
   
-  // Use the reflection map for the 180-degree rotation
-  const otherIndex = reflectionMap[index];
+  // For all faces, use the 8-i mapping for 180-degree rotation
+  const otherIndex = 8 - index;
   
   if (otherIndex < 0 || otherIndex >= otherArr.length) {
     console.error(`Invalid other index ${otherIndex} for face ${otherFaceName}`);
@@ -279,6 +495,96 @@ function setColor(faceName, index, color) {
   
   otherArr[otherIndex] = color;
 }
+
+/*********************************************************************
+ * 7) ROTATE A FACE
+ *********************************************************************/
+function rotate3x3(arr, clockwise = true) {
+  if (!Array.isArray(arr) || arr.length !== 9) {
+    console.error("Invalid array for rotation, must be an array of length 9");
+    return;
+  }
+  
+  const old = arr.slice();
+  // Always rotate clockwise
+  arr[0] = old[6]; arr[1] = old[3]; arr[2] = old[0];
+  arr[3] = old[7]; arr[4] = old[4]; arr[5] = old[1];
+  arr[6] = old[8]; arr[7] = old[5]; arr[8] = old[2];
+}
+
+function rotateFace(faceName) {
+  const arr = getFaceArray(faceName);
+  if (!arr) {
+    console.error(`Face array not found for: ${faceName}`);
+    return;
+  }
+  
+  rotate3x3(arr, true); // Always rotate clockwise
+
+  // If the face is shared, rotate the other side as well
+  if (faceName === 'wW' || faceName === 'yY') return; // No need to rotate the other side
+  
+  if (faceName.length !== 2) {
+    console.error(`Invalid face name format: ${faceName}`);
+    return;
+  }
+  
+  const faceChar = faceName[0]; // b/o/r/g
+  const sideChar = faceName[1]; // 'W' or 'Y'
+
+  if (!faceChar || !sideChar) {
+    console.error(`Invalid face name: ${faceName}`);
+    return;
+  }
+
+  let otherFaceName = "";
+  if (sideChar === 'W') {
+    // e.g. "bW" => "bY"
+    otherFaceName = faceChar + "Y";
+  } else if (sideChar === 'Y') {
+    // e.g. "bY" => "bW"
+    otherFaceName = faceChar + "W";
+  } else {
+    console.error(`Invalid side character: ${sideChar}`);
+    return;
+  }
+  
+  const otherArr = getFaceArray(otherFaceName);
+  if (!otherArr) {
+    console.error(`Other face array not found for: ${otherFaceName}`);
+    return;
+  }
+  
+  rotate3x3(otherArr, true); // Always rotate clockwise
+}
+
+/*********************************************************************
+ * 8) HOOK UP THE ROTATION BUTTONS
+ *********************************************************************/
+// Each button has data-side="white"/"yellow" and data-face="b"/"o"/"r"/"g"/"w"/"y"
+document.querySelectorAll("button[data-side]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const side = btn.dataset.side; // "white" or "yellow"
+    const faceLetter = btn.dataset.face; // "b","o","r","g","w","y"
+
+    if (!side || !faceLetter) {
+      console.error("Button missing data attributes");
+      return;
+    }
+
+    // Construct faceName, e.g. if side=white and faceLetter="b" => "bW"
+    const faceName = faceLetter + (side === "white" ? "W" : "Y");
+    rotateFace(faceName);
+    renderAll();
+  });
+});
+
+/*********************************************************************
+ * 9) INIT
+ *********************************************************************/
+document.addEventListener("DOMContentLoaded", () => {
+  renderAll();
+});
 </script>
 </body>
 </html>
