@@ -5,37 +5,38 @@ import { RotateCw, Info, X, Maximize, Minimize, ZoomIn, ZoomOut, ChevronDown, Ch
 
 export default function CubeNets() {
   // Face arrays for both nets
-  const [faceArrays, setFaceArrays] = useState(() => {
-    // Try to load from localStorage first
+  const [faceArrays, setFaceArrays] = useState({
+    bW: Array(9).fill("#0000ff"), // Blue (white side)
+    oW: Array(9).fill("#ffa500"), // Orange
+    rW: Array(9).fill("#ff0000"), // Red
+    gW: Array(9).fill("#00ff00"), // Green
+    wW: Array(9).fill("#ffffff"), // White, unlinked
+    bY: Array(9).fill("#0000ff"), // Blue (yellow side)
+    oY: Array(9).fill("#ffa500"), // Orange
+    rY: Array(9).fill("#ff0000"), // Red
+    gY: Array(9).fill("#00ff00"), // Green
+    yY: Array(9).fill("#ffff00"), // Yellow, unlinked
+  })
+
+  // Load saved state from localStorage only on client side
+  useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("cubeNetsState")
       if (saved) {
         try {
-          return JSON.parse(saved)
+          setFaceArrays(JSON.parse(saved))
         } catch (e) {
           console.error("Failed to parse saved state:", e)
         }
       }
     }
-
-    // Default state if nothing in localStorage
-    return {
-      bW: Array(9).fill("#0000ff"), // Blue (white side)
-      oW: Array(9).fill("#ffa500"), // Orange
-      rW: Array(9).fill("#ff0000"), // Red
-      gW: Array(9).fill("#00ff00"), // Green
-      wW: Array(9).fill("#ffffff"), // White, unlinked
-      bY: Array(9).fill("#0000ff"), // Blue (yellow side)
-      oY: Array(9).fill("#ffa500"), // Orange
-      rY: Array(9).fill("#ff0000"), // Red
-      gY: Array(9).fill("#00ff00"), // Green
-      yY: Array(9).fill("#ffff00"), // Yellow, unlinked
-    }
-  })
+  }, [])
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("cubeNetsState", JSON.stringify(faceArrays))
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cubeNetsState", JSON.stringify(faceArrays))
+    }
   }, [faceArrays])
 
   // White net layout
@@ -270,9 +271,11 @@ export default function CubeNets() {
       setIsFullscreen(!!document.fullscreenElement)
     }
 
-    document.addEventListener("fullscreenchange", handleFullscreenChange)
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange)
+    if (typeof window !== "undefined") {
+      document.addEventListener("fullscreenchange", handleFullscreenChange)
+      return () => {
+        document.removeEventListener("fullscreenchange", handleFullscreenChange)
+      }
     }
   }, [])
 
