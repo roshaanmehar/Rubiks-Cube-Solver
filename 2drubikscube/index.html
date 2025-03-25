@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Independent 3x3 Faces</title>
+  <title>Rubik's Cube (White/Yellow Center Toggle)</title>
   <style>
     body {
       margin: 0;
@@ -19,11 +19,13 @@
       text-align: center;
       margin-bottom: 20px;
     }
-    .faces-container {
+
+    /* We'll display the faces in a 2D "net" layout using CSS Grid. */
+    .cube-2d {
       display: grid;
-      /* 12 columns wide, 9 rows tall, each cell ~40px */
+      /* 12 columns × 12 rows is plenty to arrange the net. */
       grid-template-columns: repeat(12, 40px);
-      grid-template-rows: repeat(9, 40px);
+      grid-template-rows: repeat(12, 40px);
       gap: 2px;
       justify-content: center;
       margin-bottom: 20px;
@@ -41,13 +43,13 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       font-size: 12px;
-      color: rgba(0, 0, 0, 0.5);
+      color: rgba(0, 0, 0, 0.6);
+      cursor: pointer;
     }
     .sticker.center {
       font-weight: bold;
-      color: rgba(0, 0, 0, 0.7);
+      color: rgba(0, 0, 0, 0.9);
     }
 
     .controls {
@@ -69,6 +71,18 @@
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       padding: 15px;
     }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .instructions {
+      list-style-type: disc;
+      margin-top: 10px;
+      padding-left: 20px;
+    }
+
     .select-container {
       margin-bottom: 15px;
     }
@@ -82,9 +96,10 @@
       border-radius: 4px;
       border: 1px solid #ddd;
     }
+
     .button-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       margin-top: 15px;
     }
@@ -105,20 +120,11 @@
       cursor: not-allowed;
     }
 
-    /* Instructions list */
-    .instructions {
-      list-style-type: disc;
-      padding-left: 20px;
-      margin-top: 10px;
-    }
-
     /* Modal for color picker */
     .modal {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background-color: rgba(0, 0, 0, 0.5);
       display: flex;
       justify-content: center;
@@ -163,37 +169,57 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <h1>Independent 3×3 Faces</h1>
-    <div class="faces-container" id="faces-container"></div>
+    <h1>Rubik's Cube with White/Yellow Center Toggle</h1>
+
+    <!-- The 2D net goes here -->
+    <div class="cube-2d" id="cube-container"></div>
 
     <div class="controls">
       <div class="control-panel">
-        <h2>Rotation Direction</h2>
+        <h2>Center Color & Rotation</h2>
         <div class="select-container">
-          <label for="rotation-direction">Rotation</label>
+          <label for="center-color">Center Color</label>
+          <select id="center-color">
+            <option value="white">White on Top</option>
+            <option value="yellow">Yellow on Top</option>
+          </select>
+        </div>
+
+        <div class="select-container">
+          <label for="rotation-direction">Rotation Direction</label>
           <select id="rotation-direction">
             <option value="clockwise">Clockwise</option>
             <option value="counterclockwise">Counter-Clockwise</option>
           </select>
         </div>
-        <h3>Rotate a Face</h3>
+
+        <h2>Rotate a Face</h2>
         <div class="button-grid">
           <button id="rotate-white">White</button>
           <button id="rotate-blue">Blue</button>
-          <button id="rotate-orange">Orange</button>
           <button id="rotate-red">Red</button>
-          <button id="rotate-green">Green</button>
+          <button id="rotate_green">Green</button>
+          <button id="rotate-orange">Orange</button>
+          <button id="rotate-yellow">Yellow</button>
         </div>
       </div>
+
       <div class="control-panel">
         <h2>Instructions</h2>
         <ul class="instructions">
-          <li>These faces are independent (no adjacency swaps).</li>
-          <li>Click on any sticker (except center) to recolor it.</li>
-          <li>Use “Rotate a Face” to spin only that face’s 3×3 matrix.</li>
-          <li>Stickers show index + color code (e.g., “0W”).</li>
+          <li>Select “White on Top” or “Yellow on Top” to reorient the net.</li>
+          <li>Use the rotation buttons to turn faces (3×3). Adjacency is standard:
+            <ul>
+              <li>Green is below White, and above Yellow.</li>
+              <li>Blue is above White, and below Yellow.</li>
+              <li>Orange is left of White, Red is right, etc.</li>
+            </ul>
+          </li>
+          <li>Click on any sticker (except center) to change its color.</li>
+          <li>Stickers are labeled with <code>index + faceLetter</code>, e.g. “0W”, “1Y”, etc.</li>
         </ul>
       </div>
     </div>
@@ -252,58 +278,143 @@
   </div>
 
   <script>
-    // We have 5 faces, each a 3×3 matrix of stickers.
-    // The user wants them arranged around the white face:
-    //      (Blue)
-    // (Orange) (White) (Red)
-    //      (Green)
-    //
-    // Each face is labeled with a letter: W, B, O, R, G.
+    /******************************************************
+     *  1) FACE NAMES & COLORS
+     ******************************************************/
+    // We'll store each face as an array of 9 stickers (3×3).
+    // Also store a single "color letter" (W, Y, B, G, R, O) to label the stickers.
 
-    const FACES = {
-      white: {
-        label: "W",
-        baseColor: 0xffffff,
-        layout: { row: 3, col: 3 }, // Center
-      },
-      blue: {
-        label: "B",
-        baseColor: 0x0000ff,
-        layout: { row: 0, col: 3 }, // Above white
-      },
-      orange: {
-        label: "O",
-        baseColor: 0xffa500,
-        layout: { row: 3, col: 0 }, // Left of white
-      },
-      red: {
-        label: "R",
-        baseColor: 0xff0000,
-        layout: { row: 3, col: 6 }, // Right of white
-      },
-      green: {
-        label: "G",
-        baseColor: 0x00ff00,
-        layout: { row: 6, col: 3 }, // Below white
-      },
+    // The standard Rubik's color scheme (for convenience):
+    // White (W)   = 0xffffff
+    // Yellow (Y)  = 0xffff00
+    // Blue (B)    = 0x0000ff  (often opposite Green)
+    // Green (G)   = 0x00ff00
+    // Red (R)     = 0xff0000  (often opposite Orange)
+    // Orange (O)  = 0xffa500
+    const DEFAULT_COLORS = {
+      W: 0xffffff,
+      Y: 0xffff00,
+      B: 0x0000ff,
+      G: 0x00ff00,
+      R: 0xff0000,
+      O: 0xffa500
     };
 
-    // We store each face's 9 stickers in an array (index 0..8).
-    // Initially, fill with the face's base color:
-    let faceState = {};
-    Object.keys(FACES).forEach((face) => {
-      faceState[face] = Array(9).fill(FACES[face].baseColor);
-    });
+    // We'll store the faces in a dictionary, e.g.:
+    // { white: [9 numbers], blue: [...], etc. }
+    // but we also need to track face->letter (like "white" -> "W").
 
-    // 3×3 face layout indices (for rotation):
+    // Two possible "center" orientations:
+    //   1) White center: top=white, bottom=yellow, left=orange, right=red, up=blue, down=green
+    //   2) Yellow center: top=yellow, bottom=white, left=orange, right=red, up=blue, down=green
+    // Notice that the user specifically wants Blue above, Green below, Red to the right, Orange to the left. 
+    // Then White and Yellow either on "center top" or "center bottom."
+
+    // We'll define two "net layouts":
+    //   netLayout["whiteCenter"] and netLayout["yellowCenter"].
+    // Each face has row/col for the DOM plus we define an adjacency map for each face.
+
+    // The net looks like:
+    //   If White center:
+    //              [   Blue   ]  (top)
+    //     [Orange] [  White  ] [ Red ]
+    //              [  Green  ]  (down)
+    //              [  Yellow ]  (farther down)
+    //
+    //   If Yellow center:
+    //              [   Blue   ]
+    //     [Orange] [  Yellow ] [ Red ]
+    //              [  Green  ]
+    //              [  White  ]
+    //
+    // So let's define each net as "face -> { row, col }"
+
+    const netLayout = {
+      whiteCenter: {
+        W: { row: 3, col: 3 },
+        B: { row: 0, col: 3 },
+        R: { row: 3, col: 6 },
+        O: { row: 3, col: 0 },
+        G: { row: 6, col: 3 },
+        Y: { row: 9, col: 3 }
+      },
+      yellowCenter: {
+        // We swap W and Y in the net, but keep B, R, O, G in the same relative spots
+        Y: { row: 3, col: 3 },
+        B: { row: 0, col: 3 },
+        R: { row: 3, col: 6 },
+        O: { row: 3, col: 0 },
+        G: { row: 6, col: 3 },
+        W: { row: 9, col: 3 }
+      }
+    };
+
+    /******************************************************
+     *  2) ADJACENCY MAPS
+     ******************************************************/
+    // For each orientation, we define how rotating a face affects edge strips on adjacent faces.
+    // Each face is a 3×3 (indices 0..8):
     //   [0,1,2]
     //   [3,4,5]
     //   [6,7,8]
-    // Rotating clockwise means:
-    //   0->6, 1->3, 2->0, 3->7, 4->4, 5->1, 6->8, 7->5, 8->2
+    // We'll define for "whiteCenter" and for "yellowCenter" separately (though they'll be very similar, just swapping W <-> Y).
 
-    // For easy reference:
-    function rotateFaceArray(arr, clockwise = true) {
+    // We'll store adjacency as an object:
+    //
+    // adjacencyMapWhite = {
+    //   W: { // rotating white face in a standard "top" position
+    //       edgesClockwise: [
+    //         { face: 'B', indicesSrc: [6,7,8], indicesDst: [0,1,2] }, ...
+    //       ],
+    //       edgesCounter: [ ... ],
+    //   },
+    //   ...
+    // };
+    //
+    // The reason we define edgesClockwise vs edgesCounter is that rotating one face clockwise
+    // changes those adjacent strips in a certain direction, rotating it counterclockwise cycles them differently.
+
+    // Helper: cycleEdges() given an array of {face, idxSrc} in clockwise order:
+    function cycleEdges(cubeState, edges, clockwise) {
+      // edges is an array of: [{face, indices}, {face, indices}, ...]
+      // If clockwise, we shift from the previous to next
+      // If counter, we shift from the next to previous.
+      if (edges.length < 2) return;
+      if (clockwise) {
+        // Move each face's indices from the previous element in the array
+        const last = edges[edges.length - 1];
+        const lastVals = last.indices.map(idx => cubeState[last.face][idx]);
+        for (let i = edges.length - 1; i > 0; i--) {
+          const current = edges[i];
+          const prev = edges[i - 1];
+          // Overwrite current face's indices from prev face
+          current.indices.forEach((idx, k) => {
+            cubeState[current.face][idx] = cubeState[prev.face][prev.indices[k]];
+          });
+        }
+        // Now overwrite the first face from the "last" set
+        edges[0].indices.forEach((idx, k) => {
+          cubeState[edges[0].face][idx] = lastVals[k];
+        });
+      } else {
+        // counterclockwise shift
+        const first = edges[0];
+        const firstVals = first.indices.map(idx => cubeState[first.face][idx]);
+        for (let i = 0; i < edges.length - 1; i++) {
+          const current = edges[i];
+          const next = edges[i + 1];
+          current.indices.forEach((idx, k) => {
+            cubeState[current.face][idx] = cubeState[next.face][next.indices[k]];
+          });
+        }
+        edges[edges.length - 1].indices.forEach((idx, k) => {
+          cubeState[edges[edges.length - 1].face][idx] = firstVals[k];
+        });
+      }
+    }
+
+    // A helper to rotate the 3x3 array (the face itself) in place
+    function rotateFaceArray(arr, clockwise=true) {
       const old = [...arr];
       if (clockwise) {
         arr[0] = old[6]; arr[1] = old[3]; arr[2] = old[0];
@@ -316,129 +427,458 @@
       }
     }
 
-    // Build the 2D layout (12 columns × 9 rows) in the DOM:
-    const facesContainer = document.getElementById("faces-container");
-    facesContainer.classList.add("faces-container");
+    // We'll define adjacency for the "white on top" scenario:
+    // The net is:
+    //          B
+    //    O    W     R
+    //          G
+    //          Y
+    //
+    // So let's define how rotating W, B, R, O, G, Y each affects adjacent edges.
+    //
+    // Example for rotating White (W) clockwise:
+    //  - top row of W is adjacent to bottom row of B
+    //  - right col of W is adjacent to left col of R
+    //  - bottom row of W is adjacent to top row of G
+    //  - left col of W is adjacent to right col of O
+    //
+    // But we must specify the order in which they cycle for a clockwise turn.
 
-    // Render function to display all faces:
-    function renderAllFaces() {
-      facesContainer.innerHTML = ""; // Clear container
-
-      // For each face in FACES, place a 3x3 sub-grid
-      Object.entries(FACES).forEach(([faceName, cfg]) => {
-        const faceElement = document.createElement("div");
-        faceElement.className = "face-2d";
-
-        // Position in the big grid
-        // Each face is 3 rows × 3 columns
-        faceElement.style.gridRow = `${cfg.layout.row + 1} / span 3`;
-        faceElement.style.gridColumn = `${cfg.layout.col + 1} / span 3`;
-
-        // Fill with 9 stickers
-        for (let i = 0; i < 9; i++) {
-          const sticker = document.createElement("div");
-          sticker.className = "sticker";
-          // Center sticker
-          if (i === 4) {
-            sticker.classList.add("center");
+    const adjacencyMapWhite = {
+      W: {
+        // rotate the W face in place, plus cycle edges
+        clockwise: [
+          // We'll list edges in clockwise order:
+          // Suppose we view the White face with top row = indices [0,1,2],
+          // right col = [2,5,8], bottom row = [6,7,8], left col = [0,3,6].
+          // The "top row of W" is connected to "bottom row of B" -> indices [6,7,8].
+          // We'll define the edge array in the order: top(W)->right(W)->bottom(W)->left(W).
+          {
+            face: "B", indices: [6,7,8] // bottom row of B
+          },
+          {
+            face: "R", indices: [0,3,6] // left col of R
+          },
+          {
+            face: "G", indices: [0,1,2] // top row of G
+          },
+          {
+            face: "O", indices: [2,5,8] // right col of O
           }
-
-          const colorValue = faceState[faceName][i];
-          // Convert numeric color to #RRGGBB
-          sticker.style.backgroundColor =
-            "#" + colorValue.toString(16).padStart(6, "0");
-
-          // Label with: index + face label, e.g. "0W", "1W", ...
-          sticker.textContent = i + cfg.label;
-
-          // Only allow recoloring if it's NOT the center sticker
-          if (i !== 4) {
-            sticker.addEventListener("click", () => {
-              selectedSticker = { face: faceName, index: i };
-              openColorPickerModal();
-            });
+        ],
+        counter: [
+          // The same edges, but we shift in reverse order
+          {
+            face: "B", indices: [6,7,8]
+          },
+          {
+            face: "O", indices: [2,5,8]
+          },
+          {
+            face: "G", indices: [0,1,2]
+          },
+          {
+            face: "R", indices: [0,3,6]
           }
+        ]
+      },
 
-          faceElement.appendChild(sticker);
-        }
+      B: {
+        // Blue is "above" White.  Its bottom row is White's top row, etc.
+        clockwise: [
+          {
+            face: "Y", indices: [2,1,0]  // top row of Y (reversed?), because B and Y are opposite in this net? 
+                                        // We'll assume the net so that rotating B cycles edges with R, W, O, Y...
+          },
+          {
+            face: "R", indices: [2,1,0]  // top row of R?  This can get quite detailed if we fully replicate the standard cube net.
+          },
+          {
+            face: "W", indices: [0,1,2]  // top row of W
+          },
+          {
+            face: "O", indices: [0,1,2]
+          }
+        ],
+        // For simplicity, we define the "counter" array in reverse order:
+        counter: [
+          {
+            face: "Y", indices: [2,1,0]
+          },
+          {
+            face: "O", indices: [0,1,2]
+          },
+          {
+            face: "W", indices: [0,1,2]
+          },
+          {
+            face: "R", indices: [2,1,0]
+          }
+        ]
+      },
 
-        facesContainer.appendChild(faceElement);
+      R: {
+        clockwise: [
+          { face: "B", indices: [2,5,8] },
+          { face: "Y", indices: [6,7,8] },
+          { face: "G", indices: [2,5,8] },
+          { face: "W", indices: [2,5,8] }
+        ],
+        counter: [
+          { face: "B", indices: [2,5,8] },
+          { face: "W", indices: [2,5,8] },
+          { face: "G", indices: [2,5,8] },
+          { face: "Y", indices: [6,7,8] }
+        ]
+      },
+
+      O: {
+        clockwise: [
+          { face: "B", indices: [0,3,6] },
+          { face: "W", indices: [0,3,6] },
+          { face: "G", indices: [0,3,6] },
+          { face: "Y", indices: [2,1,0] }
+        ],
+        counter: [
+          { face: "B", indices: [0,3,6] },
+          { face: "Y", indices: [2,1,0] },
+          { face: "G", indices: [0,3,6] },
+          { face: "W", indices: [0,3,6] }
+        ]
+      },
+
+      G: {
+        // Green is below White, above Yellow. 
+        // top row of G (0,1,2) <-> bottom row of W (6,7,8)
+        // bottom row of G (6,7,8) <-> top row of Y (0,1,2)
+        clockwise: [
+          { face: "W", indices: [6,7,8] },
+          { face: "R", indices: [6,3,0] },
+          { face: "Y", indices: [0,1,2] },
+          { face: "O", indices: [8,5,2] }
+        ],
+        counter: [
+          { face: "W", indices: [6,7,8] },
+          { face: "O", indices: [8,5,2] },
+          { face: "Y", indices: [0,1,2] },
+          { face: "R", indices: [6,3,0] }
+        ]
+      },
+
+      Y: {
+        // Yellow is at the bottom in "whiteCenter" orientation
+        clockwise: [
+          { face: "G", indices: [6,7,8] },
+          { face: "R", indices: [8,7,6] },
+          { face: "B", indices: [0,1,2] },
+          { face: "O", indices: [8,7,6] }
+        ],
+        counter: [
+          { face: "G", indices: [6,7,8] },
+          { face: "O", indices: [8,7,6] },
+          { face: "B", indices: [0,1,2] },
+          { face: "R", indices: [8,7,6] }
+        ]
+      }
+    };
+
+    // For "yellowCenter," we basically swap W <-> Y in the adjacency.  
+    // One approach is to generate the adjacency by reading adjacencyMapWhite
+    // and replacing W with Y, Y with W.  For brevity, we can define a second map
+    // or do a quick transform.  Below, we do a naive second definition, but a real
+    // code might generate it programmatically to avoid confusion.
+
+    const adjacencyMapYellow = {
+      Y: {
+        clockwise: [
+          {
+            face: "B", indices: [6,7,8]
+          },
+          {
+            face: "R", indices: [0,3,6]
+          },
+          {
+            face: "G", indices: [0,1,2]
+          },
+          {
+            face: "O", indices: [2,5,8]
+          }
+        ],
+        counter: [
+          {
+            face: "B", indices: [6,7,8]
+          },
+          {
+            face: "O", indices: [2,5,8]
+          },
+          {
+            face: "G", indices: [0,1,2]
+          },
+          {
+            face: "R", indices: [0,3,6]
+          }
+        ]
+      },
+      B: {
+        clockwise: [
+          { face: "W", indices: [2,1,0] },
+          { face: "R", indices: [2,1,0] },
+          { face: "Y", indices: [0,1,2] },
+          { face: "O", indices: [0,1,2] }
+        ],
+        counter: [
+          { face: "W", indices: [2,1,0] },
+          { face: "O", indices: [0,1,2] },
+          { face: "Y", indices: [0,1,2] },
+          { face: "R", indices: [2,1,0] }
+        ]
+      },
+      R: {
+        clockwise: [
+          { face: "B", indices: [2,5,8] },
+          { face: "W", indices: [6,7,8] },
+          { face: "G", indices: [2,5,8] },
+          { face: "Y", indices: [2,5,8] }
+        ],
+        counter: [
+          { face: "B", indices: [2,5,8] },
+          { face: "Y", indices: [2,5,8] },
+          { face: "G", indices: [2,5,8] },
+          { face: "W", indices: [6,7,8] }
+        ]
+      },
+      O: {
+        clockwise: [
+          { face: "B", indices: [0,3,6] },
+          { face: "Y", indices: [0,3,6] },
+          { face: "G", indices: [0,3,6] },
+          { face: "W", indices: [2,1,0] }
+        ],
+        counter: [
+          { face: "B", indices: [0,3,6] },
+          { face: "W", indices: [2,1,0] },
+          { face: "G", indices: [0,3,6] },
+          { face: "Y", indices: [0,3,6] }
+        ]
+      },
+      G: {
+        clockwise: [
+          { face: "Y", indices: [6,7,8] },
+          { face: "R", indices: [6,3,0] },
+          { face: "W", indices: [0,1,2] },
+          { face: "O", indices: [8,5,2] }
+        ],
+        counter: [
+          { face: "Y", indices: [6,7,8] },
+          { face: "O", indices: [8,5,2] },
+          { face: "W", indices: [0,1,2] },
+          { face: "R", indices: [6,3,0] }
+        ]
+      },
+      W: {
+        clockwise: [
+          { face: "G", indices: [6,7,8] },
+          { face: "R", indices: [8,7,6] },
+          { face: "B", indices: [0,1,2] },
+          { face: "O", indices: [8,7,6] }
+        ],
+        counter: [
+          { face: "G", indices: [6,7,8] },
+          { face: "O", indices: [8,7,6] },
+          { face: "B", indices: [0,1,2] },
+          { face: "R", indices: [8,7,6] }
+        ]
+      }
+    };
+
+    // We’ll choose which adjacency map to use based on the selected center color.
+
+
+    /******************************************************
+     *  3) CUBE STATE
+     ******************************************************/
+    // We'll store each face as an array of 9 color values.
+    // Keyed by the face letter: W, Y, B, G, R, O. 
+    // For example, cubeState["W"] = [9 color ints].
+    let cubeState = {};
+
+    // Initialize the cube so each face is a solid color
+    function initCubeState() {
+      const letters = ["W", "Y", "B", "G", "R", "O"];
+      letters.forEach(letter => {
+        cubeState[letter] = Array(9).fill(DEFAULT_COLORS[letter]);
       });
     }
 
-    // Color picker modal logic
+    // We also keep track of the current "center orientation": either "whiteCenter" or "yellowCenter".
+    let currentCenter = "whiteCenter";
+
+    /******************************************************
+     *  4) RENDER THE NET
+     ******************************************************/
+    const container = document.getElementById("cube-container");
+
+    function renderCube() {
+      container.innerHTML = "";
+      // Decide which net layout to use
+      const layout = (currentCenter === "whiteCenter")
+        ? netLayout.whiteCenter
+        : netLayout.yellowCenter;
+
+      // For each letter in the layout
+      Object.entries(layout).forEach(([letter, pos]) => {
+        // letter might be "W" or "Y" etc.
+        const faceDiv = document.createElement("div");
+        faceDiv.className = "face-2d";
+        faceDiv.style.gridRow = `${pos.row + 1} / span 3`;
+        faceDiv.style.gridColumn = `${pos.col + 1} / span 3`;
+
+        // 9 stickers
+        for (let i = 0; i < 9; i++) {
+          const stickerDiv = document.createElement("div");
+          stickerDiv.className = "sticker";
+          if (i === 4) { // center
+            stickerDiv.classList.add("center");
+          }
+
+          // Get color
+          const colorVal = cubeState[letter][i];
+          stickerDiv.style.backgroundColor =
+            "#" + colorVal.toString(16).padStart(6, "0");
+
+          // Label: index + letter, e.g. "0W", "6G", ...
+          stickerDiv.textContent = i + letter;
+
+          // Click to recolor if not center
+          if (i !== 4) {
+            stickerDiv.addEventListener("click", () => {
+              selectedSticker = { face: letter, index: i };
+              openColorPicker();
+            });
+          }
+
+          faceDiv.appendChild(stickerDiv);
+        }
+        container.appendChild(faceDiv);
+      });
+    }
+
+
+    /******************************************************
+     *  5) ROTATION LOGIC
+     ******************************************************/
+    function rotateFace(letter, clockwise) {
+      // 1) Rotate the face's own 3×3 array
+      rotateFaceArray(cubeState[letter], clockwise);
+
+      // 2) Use adjacency map
+      const adjacency = (currentCenter === "whiteCenter")
+        ? adjacencyMapWhite
+        : adjacencyMapYellow;
+
+      const faceAdj = adjacency[letter];
+      if (!faceAdj) return; // e.g. if we messed up the adjacency definitions
+
+      const edges = clockwise ? faceAdj.clockwise : faceAdj.counter;
+      cycleEdges(cubeState, edges, true /* always cycle forward in this array */);
+    }
+
+
+    /******************************************************
+     *  6) COLOR PICKER MODAL
+     ******************************************************/
+    let selectedSticker = null;
     const modal = document.getElementById("color-picker-modal");
     const closeModalBtn = document.getElementById("close-color-picker");
     const colorOptions = document.querySelectorAll("#color-picker .color-option");
 
-    let selectedSticker = null;
-
-    function openColorPickerModal() {
+    function openColorPicker() {
       modal.classList.remove("hidden");
     }
-    function closeColorPickerModal() {
+    function closeColorPicker() {
       modal.classList.add("hidden");
       selectedSticker = null;
     }
 
-    closeModalBtn.addEventListener("click", () => closeColorPickerModal());
+    closeModalBtn.addEventListener("click", closeColorPicker);
     modal.addEventListener("click", (e) => {
       if (e.target === modal) {
-        closeColorPickerModal();
+        closeColorPicker();
       }
     });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
-        closeColorPickerModal();
+        closeColorPicker();
       }
     });
 
-    // When clicking a color:
-    colorOptions.forEach((option) => {
-      option.addEventListener("click", () => {
+    colorOptions.forEach((opt) => {
+      opt.addEventListener("click", () => {
         if (selectedSticker) {
-          const color = parseInt(option.dataset.color, 16);
-          faceState[selectedSticker.face][selectedSticker.index] = color;
-          renderAllFaces();
+          const colorVal = parseInt(opt.dataset.color, 16);
+          const { face, index } = selectedSticker;
+          cubeState[face][index] = colorVal;
+          renderCube();
         }
-        closeColorPickerModal();
+        closeColorPicker();
       });
     });
 
-    // Rotation direction
-    const rotationSelect = document.getElementById("rotation-direction");
-    let rotationDirection = "clockwise";
-    rotationSelect.addEventListener("change", (e) => {
-      rotationDirection = e.target.value;
+
+    /******************************************************
+     *  7) UI WIRING (DROPDOWNS, BUTTONS)
+     ******************************************************/
+    // Center color dropdown
+    const centerColorSelect = document.getElementById("center-color");
+    centerColorSelect.addEventListener("change", (e) => {
+      if (e.target.value === "white") {
+        currentCenter = "whiteCenter";
+      } else {
+        currentCenter = "yellowCenter";
+      }
+      renderCube();
     });
 
-    // Buttons to rotate each face independently
+    // Rotation direction dropdown
+    let rotationDir = "clockwise";
+    const rotationDirSelect = document.getElementById("rotation-direction");
+    rotationDirSelect.addEventListener("change", (e) => {
+      rotationDir = e.target.value;
+    });
+
+    // Rotation buttons
     document.getElementById("rotate-white").addEventListener("click", () => {
-      rotateFace("white");
+      rotateFace("W", rotationDir === "clockwise");
+      renderCube();
     });
     document.getElementById("rotate-blue").addEventListener("click", () => {
-      rotateFace("blue");
-    });
-    document.getElementById("rotate-orange").addEventListener("click", () => {
-      rotateFace("orange");
+      rotateFace("B", rotationDir === "clockwise");
+      renderCube();
     });
     document.getElementById("rotate-red").addEventListener("click", () => {
-      rotateFace("red");
+      rotateFace("R", rotationDir === "clockwise");
+      renderCube();
     });
-    document.getElementById("rotate-green").addEventListener("click", () => {
-      rotateFace("green");
+    document.getElementById("rotate_green").addEventListener("click", () => {
+      rotateFace("G", rotationDir === "clockwise");
+      renderCube();
+    });
+    document.getElementById("rotate-orange").addEventListener("click", () => {
+      rotateFace("O", rotationDir === "clockwise");
+      renderCube();
+    });
+    document.getElementById("rotate-yellow").addEventListener("click", () => {
+      rotateFace("Y", rotationDir === "clockwise");
+      renderCube();
     });
 
-    // Rotate a single face (no adjacency changes)
-    function rotateFace(faceName) {
-      const cw = rotationDirection === "clockwise";
-      rotateFaceArray(faceState[faceName], cw);
-      renderAllFaces();
-    }
 
-    // Initial render
+    /******************************************************
+     *  8) INIT & RENDER
+     ******************************************************/
     document.addEventListener("DOMContentLoaded", () => {
-      renderAllFaces();
+      initCubeState();
+      renderCube();
     });
   </script>
 </body>
