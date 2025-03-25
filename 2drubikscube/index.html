@@ -283,8 +283,6 @@ const yellowLayout = [
  * 3) MAPPING FACE-NAME -> the actual 9-element array
  *********************************************************************/
 function getFaceArray(faceName) {
-  // faceName looks like 'bW', 'oW', 'rW', 'gW', 'wW', or 'bY', etc.
-  // We'll parse first letter => b/o/r/g/w/y, then second char => W or Y, or third if needed.
   switch(faceName){
     case 'bW': return bW; 
     case 'oW': return oW; 
@@ -329,7 +327,6 @@ function renderNet(containerId, layout) {
 
       const color = arr[i];
       cellDiv.style.backgroundColor = color;
-      // Show the index for debugging:
       cellDiv.textContent = i;
 
       // Center? i===4
@@ -398,10 +395,8 @@ colorOpts.forEach(opt=>{
 
 /*********************************************************************
  * 6) setColor(faceName, index, newColor)
- *    If faceName is among bW/oW/rW/gW => that’s a shared face on White side => also reflect to bY/oY/rY/gY at (8-index).
- *    If faceName is wW => unlinked White face. 
- *    If faceName is bY/oY/rY/gY => shared face on Yellow side => reflect to bW/oW/rW/gW at (8-index).
- *    If faceName is yY => unlinked Yellow face.
+ *    If faceName is among b/o/r/g, reflect it to the other net at index (8−i).
+ *    If faceName is wW or yY, do not reflect it to the other side.
  *********************************************************************/
 function setColor(faceName, index, color){
   const arr = getFaceArray(faceName);
@@ -411,79 +406,4 @@ function setColor(faceName, index, color){
   // If it's W or Y => do nothing else
   if(faceName==='wW' || faceName==='yY') return;
 
-  // Face name is e.g. "bW" => we need to reflect to "bY" at index 8 - i
-  // or "oY" => reflect to "oW" at 8 - i, etc.
-  const faceChar = faceName[0]; // b/o/r/g
-  const sideChar = faceName[1]; // 'W' or 'Y'
-
-  let otherFaceName = "";
-  if(sideChar==='W'){
-    // e.g. "bW" => "bY"
-    otherFaceName = faceChar + "Y";
-  } else {
-    // e.g. "bY" => "bW"
-    otherFaceName = faceChar + "W";
-  }
-  const otherArr = getFaceArray(otherFaceName);
-  if(!otherArr) return;
-  const otherIndex = 8 - index;
-  otherArr[otherIndex] = color;
-}
-
-/*********************************************************************
- * 7) ROTATION
- *    rotateFace(faceName, clockwise): re-map [0..8]. 
- *    This only affects the chosen side’s face. If it’s B/O/R/G on White side,
- *    we do NOT rotate the Yellow side’s face (they can differ).
- *********************************************************************/
-function rotate3x3(arr, clockwise=true){
-  const old = arr.slice();
-  if(clockwise){
-    arr[0]= old[6]; arr[1]= old[3]; arr[2]= old[0];
-    arr[3]= old[7]; arr[4]= old[4]; arr[5]= old[1];
-    arr[6]= old[8]; arr[7]= old[5]; arr[8]= old[2];
-  } else {
-    arr[0]= old[2]; arr[1]= old[5]; arr[2]= old[8];
-    arr[3]= old[1]; arr[4]= old[4]; arr[5]= old[7];
-    arr[6]= old[0]; arr[7]= old[3]; arr[8]= old[6];
-  }
-}
-
-/** If faceName is bW, we rotate bW only. bY remains as is. */
-function rotateFace(faceName, clockwise){
-  const arr = getFaceArray(faceName);
-  if(!arr) return;
-  rotate3x3(arr, clockwise);
-}
-
-/*********************************************************************
- * 8) HOOK UP THE ROTATION BUTTONS
- *********************************************************************/
-const rotateDirSelect = document.getElementById("rotateDir");
-let rotateDir="cw";
-rotateDirSelect.addEventListener("change", ()=>{
-  rotateDir= rotateDirSelect.value;
-});
-
-// Each button has data-side="white"/"yellow" and data-face="b"/"o"/"r"/"g"/"w"/"y"
-document.querySelectorAll("button[data-side]").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    const side = btn.dataset.side; // "white" or "yellow"
-    const faceLetter = btn.dataset.face; // "b","o","r","g","w","y"
-
-    // Construct faceName, e.g. if side=white and faceLetter="b" => "bW"
-    const faceName = faceLetter + (side==="white" ? "W" : "Y");
-    rotateFace(faceName, (rotateDir==="cw"));
-    renderAll();
-  });
-});
-
-/*********************************************************************
- * 9) INIT
- *********************************************************************/
-document.addEventListener("DOMContentLoaded", ()=>{
-  renderAll();
-});
-</script>
-</body>
-</html>
+  // If face is among b/o/r/g => reflect to the other side at index 8 - i
