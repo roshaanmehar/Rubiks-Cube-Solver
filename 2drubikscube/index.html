@@ -407,3 +407,89 @@ function setColor(faceName, index, color){
   if(faceName==='wW' || faceName==='yY') return;
 
   // If face is among b/o/r/g => reflect to the other side at index 8 - i
+  const faceChar = faceName[0]; // b/o/r/g
+  const sideChar = faceName[1]; // 'W' or 'Y'
+
+  let otherFaceName = "";
+  if(sideChar==='W'){
+    // e.g. "bW" => "bY"
+    otherFaceName = faceChar + "Y";
+  } else {
+    // e.g. "bY" => "bW"
+    otherFaceName = faceChar + "W";
+  }
+  const otherArr = getFaceArray(otherFaceName);
+  if(!otherArr) return;
+  const otherIndex = 8 - index;
+  otherArr[otherIndex] = color;
+}
+
+/*********************************************************************
+ * 7) ROTATE A FACE
+ *********************************************************************/
+function rotate3x3(arr, clockwise=true){
+  const old = arr.slice();
+  if(clockwise){
+    arr[0]= old[6]; arr[1]= old[3]; arr[2]= old[0];
+    arr[3]= old[7]; arr[4]= old[4]; arr[5]= old[1];
+    arr[6]= old[8]; arr[7]= old[5]; arr[8]= old[2];
+  } else {
+    arr[0]= old[2]; arr[1]= old[5]; arr[2]= old[8];
+    arr[3]= old[1]; arr[4]= old[4]; arr[5]= old[7];
+    arr[6]= old[0]; arr[7]= old[3]; arr[8]= old[6];
+  }
+}
+
+function rotateFace(faceName, clockwise){
+  const arr = getFaceArray(faceName);
+  if(!arr) return;
+  rotate3x3(arr, clockwise);
+
+  // If the face is shared, rotate the other side as well
+  const faceChar = faceName[0]; // b/o/r/g
+  const sideChar = faceName[1]; // 'W' or 'Y'
+
+  let otherFaceName = "";
+  if(sideChar==='W'){
+    // e.g. "bW" => "bY"
+    otherFaceName = faceChar + "Y";
+  } else {
+    // e.g. "bY" => "bW"
+    otherFaceName = faceChar + "W";
+  }
+  const otherArr = getFaceArray(otherFaceName);
+  if(!otherArr) return;
+  rotate3x3(otherArr, clockwise);
+}
+
+/*********************************************************************
+ * 8) HOOK UP THE ROTATION BUTTONS
+ *********************************************************************/
+const rotateDirSelect = document.getElementById("rotateDir");
+let rotateDir="cw";
+rotateDirSelect.addEventListener("change", ()=>{
+  rotateDir= rotateDirSelect.value;
+});
+
+// Each button has data-side="white"/"yellow" and data-face="b"/"o"/"r"/"g"/"w"/"y"
+document.querySelectorAll("button[data-side]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const side = btn.dataset.side; // "white" or "yellow"
+    const faceLetter = btn.dataset.face; // "b","o","r","g","w","y"
+
+    // Construct faceName, e.g. if side=white and faceLetter="b" => "bW"
+    const faceName = faceLetter + (side==="white" ? "W" : "Y");
+    rotateFace(faceName, (rotateDir==="cw"));
+    renderAll();
+  });
+});
+
+/*********************************************************************
+ * 9) INIT
+ *********************************************************************/
+document.addEventListener("DOMContentLoaded", ()=>{
+  renderAll();
+});
+</script>
+</body>
+</html>
