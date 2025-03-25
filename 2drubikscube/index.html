@@ -1,80 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Two Nets, Linked by Label (B/O/R/G), Unlinked W/Y</title>
+  <meta charset="UTF-8"/>
+  <title>Two Nets (Face-Based, No Letters)</title>
   <style>
     body {
-      margin:0; padding:0;
-      font-family:Arial,sans-serif;
-      background-color:#f0f0f0;
+      margin: 0; 
+      padding: 0; 
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
     }
     .container {
-      max-width:1400px;
-      margin:0 auto;
-      padding:20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
     }
-    h1 { text-align:center; margin-bottom:20px; }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
     .nets {
-      display:flex; gap:30px; justify-content:center; flex-wrap:wrap;
+      display: flex;
+      gap: 30px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
-    .net-container { text-align:center; }
-
+    .net-container {
+      text-align: center;
+    }
     .grid9x9 {
-      display:grid;
-      grid-template-columns:repeat(9,40px);
-      grid-template-rows:repeat(9,40px);
-      gap:1px;
-      margin-bottom:20px;
+      display: grid;
+      grid-template-columns: repeat(9, 40px);
+      grid-template-rows: repeat(9, 40px);
+      gap: 1px;
     }
     .cell {
-      width:40px; height:40px;
-      border:1px solid #333;
-      display:flex; align-items:center; justify-content:center;
-      font-size:12px;
-      color:rgba(0,0,0,0.7);
-      cursor:pointer;
-      box-sizing:border-box;
+      width: 40px;
+      height: 40px;
+      border: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: rgba(0,0,0,0.5);
+      cursor: pointer;
+      box-sizing: border-box;
     }
     .empty {
-      border:none; cursor:default;
+      border: none;
+      cursor: default;
     }
     .center {
-      font-weight:bold;
-      color:rgba(0,0,0,0.9);
-      cursor:default;
+      font-weight: bold;
+      color: rgba(0,0,0,0.8);
+      cursor: default;
     }
-
     .controls {
-      margin-top:25px;
-      display:flex; gap:20px; justify-content:center; flex-wrap:wrap;
+      margin-top: 30px;
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
     .control-panel {
-      background:#fff;
-      border-radius:8px;
-      box-shadow:0 2px 10px rgba(0,0,0,0.1);
-      padding:15px; min-width:280px;
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      min-width: 280px;
     }
     .buttons {
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:8px; margin-top:10px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
     }
     button {
-      padding:8px;
-      border:none;
-      border-radius:4px;
-      background-color:#4299e1;
-      color:#fff;
-      cursor:pointer;
-      font-weight:500;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      background-color: #4299e1;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
     }
-    button:hover { background-color:#3182ce; }
-
+    button:hover {
+      background-color: #3182ce;
+    }
+    /* Color picker modal */
     .modal {
-      position:fixed; top:0; left:0; width:100%; height:100%;
-      background:rgba(0,0,0,0.5);
-      display:flex; align-items:center; justify-content:center;
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background-color: rgba(0,0,0,0.5);
+      display:flex; justify-content:center; align-items:center;
       z-index:999;
     }
     .modal-content {
@@ -84,7 +103,10 @@
       width:300px;
     }
     .color-picker {
-      display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:15px;
+      display:grid;
+      grid-template-columns: repeat(3,1fr);
+      gap:8px;
+      margin-bottom:15px;
     }
     .color-option {
       width:40px; height:40px;
@@ -92,38 +114,46 @@
       border-radius:4px;
       cursor:pointer;
     }
-    .color-option:hover { border:2px solid #000; }
+    .color-option:hover {
+      border:2px solid #000;
+    }
     .cancel-btn {
       width:100%;
       background-color:#6c757d;
     }
-    .cancel-btn:hover { background-color:#5a6268; }
+    .cancel-btn:hover {
+      background-color:#5a6268;
+    }
     .hidden { display:none !important; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>Two Nets, Linked by Label (B/O/R/G), Unlinked W/Y</h1>
+  <h1>Two Nets (Face-Based, No Letters)</h1>
 
+  <!-- Two 9x9 nets -->
   <div class="nets">
+    <!-- White-Center -->
     <div class="net-container">
       <h2>White-Center Layout</h2>
-      <div id="whiteGrid" class="grid9x9"></div>
+      <div id="whiteNet" class="grid9x9"></div>
     </div>
+    <!-- Yellow-Center -->
     <div class="net-container">
       <h2>Yellow-Center Layout</h2>
-      <div id="yellowGrid" class="grid9x9"></div>
+      <div id="yellowNet" class="grid9x9"></div>
     </div>
   </div>
 
+  <!-- Controls -->
   <div class="controls">
     <div class="control-panel">
       <h2>Rotate a Face</h2>
-      <p>Digits (1..9) stay put, letters shift. B/O/R/G are label-linked across nets; W/Y are unlinked.</p>
-      <label for="rotateDir">Direction:</label>
+      <p>B, O, R, G are linked in both nets. W (white) & Y (yellow) are unlinked.</p>
+      <label for="rotateDir">Rotation Direction:</label>
       <select id="rotateDir">
         <option value="cw">Clockwise</option>
-        <option value="ccw">Counterclockwise</option>
+        <option value="ccw">Counter-Clockwise</option>
       </select>
       <div class="buttons">
         <button data-face="b">Rotate B</button>
@@ -137,9 +167,9 @@
     <div class="control-panel">
       <h2>Instructions</h2>
       <ul>
-        <li>Click a non‐center cell to change its letter. If it’s B/O/R/G, the same label is updated in both nets.</li>
-        <li>White (W) is only in the left net; Yellow (Y) only in the right net. Those do not link.</li>
-        <li>Rotation is face‐by‐face, shuffling letters among the 9 squares of that face. The digits remain fixed positions in the net.</li>
+        <li>No adjacency: rotating one face changes only that face’s 3×3 block.</li>
+        <li>B/O/R/G <em>shared</em> across both nets; W/Y <em>separate</em> for each net.</li>
+        <li>Click any sticker (except center) to recolor it.</li>
       </ul>
     </div>
   </div>
@@ -150,400 +180,273 @@
   <div class="modal-content">
     <h3>Select a Color</h3>
     <div class="color-picker">
-      <div class="color-option" style="background-color:#ff0000" data-letter="r"></div>
-      <div class="color-option" style="background-color:#ffa500" data-letter="o"></div>
-      <div class="color-option" style="background-color:#ffffff" data-letter="w"></div>
-      <div class="color-option" style="background-color:#ffff00" data-letter="y"></div>
-      <div class="color-option" style="background-color:#00ff00" data-letter="g"></div>
-      <div class="color-option" style="background-color:#0000ff" data-letter="b"></div>
+      <!-- Red -->
+      <div class="color-option" style="background-color:#ff0000" data-color="#ff0000"></div>
+      <!-- Orange -->
+      <div class="color-option" style="background-color:#ffa500" data-color="#ffa500"></div>
+      <!-- White -->
+      <div class="color-option" style="background-color:#ffffff" data-color="#ffffff"></div>
+      <!-- Yellow -->
+      <div class="color-option" style="background-color:#ffff00" data-color="#ffff00"></div>
+      <!-- Green -->
+      <div class="color-option" style="background-color:#00ff00" data-color="#00ff00"></div>
+      <!-- Blue -->
+      <div class="color-option" style="background-color:#0000ff" data-color="#0000ff"></div>
     </div>
     <button id="cancelColor" class="cancel-btn">Cancel</button>
   </div>
 </div>
 
 <script>
-/**********************************************************************
- * 1) Layout Strings
- **********************************************************************/
-// White side
-const whiteStrings = [
-  ["","","","b9","b8","b7","","",""],
-  ["","","","b6","b5","b4","","",""],
-  ["","","","b3","b2","b1","","",""],
-  ["o7","o4","o1","w1","w2","w3","r3","r6","r9"],
-  ["o8","o5","o2","w4","w5","w6","r2","r5","r8"],
-  ["o9","o6","o3","w7","w8","w9","r1","r4","r7"],
-  ["","","","g1","g2","g3","","",""],
-  ["","","","g4","g5","g6","","",""],
-  ["","","","g7","g8","g9","","",""]
+/*******************************************************************************
+ * 1) FACE ARRAYS
+ *    We'll have 6 faces: b, o, r, g, w, y. Each is a 9-element array of color strings.
+ *    B/O/R/G arrays are SHARED between the two nets.
+ *    W is used only in the White net. Y is used only in the Yellow net.
+ ******************************************************************************/
+
+// We'll initialize each face as a solid color for demo:
+let faceB = Array(9).fill("#0000ff"); // Blue
+let faceO = Array(9).fill("#ffa500"); // Orange
+let faceR = Array(9).fill("#ff0000"); // Red
+let faceG = Array(9).fill("#00ff00"); // Green
+
+// White net's 'w' face
+let faceW = Array(9).fill("#ffffff"); // White
+// Yellow net's 'y' face
+let faceY = Array(9).fill("#ffff00"); // Yellow
+
+/*******************************************************************************
+ * 2) DEFINING THE 2D LAYOUT FOR EACH NET
+ *    Each net is 9 rows x 9 columns. We define which squares map to which face
+ *    and which index (0..8) within that face.
+ *
+ *    White net includes: b, o, w, r, g
+ *    Yellow net includes: b, o, y, r, g
+ *
+ *    For each net, we store a 9x9 array of:
+ *       { face:'b', index:0..8 } or null if empty
+ ******************************************************************************/
+
+// White net layout (the "plus" shape):
+// Row-by-row (9 rows), each an array(9). We'll fill each cell with {face, index}.
+const whiteLayout = [
+  // Row0
+  [ null,null,null, {face:'b',index:0}, {face:'b',index:1}, {face:'b',index:2}, null,null,null ],
+  // Row1
+  [ null,null,null, {face:'b',index:3}, {face:'b',index:4}, {face:'b',index:5}, null,null,null ],
+  // Row2
+  [ null,null,null, {face:'b',index:6}, {face:'b',index:7}, {face:'b',index:8}, null,null,null ],
+  // Row3
+  [ {face:'o',index:0},{face:'o',index:1},{face:'o',index:2},
+    {face:'w',index:0},{face:'w',index:1},{face:'w',index:2},
+    {face:'r',index:0},{face:'r',index:1},{face:'r',index:2} ],
+  // Row4
+  [ {face:'o',index:3},{face:'o',index:4},{face:'o',index:5},
+    {face:'w',index:3},{face:'w',index:4},{face:'w',index:5},
+    {face:'r',index:3},{face:'r',index:4},{face:'r',index:5} ],
+  // Row5
+  [ {face:'o',index:6},{face:'o',index:7},{face:'o',index:8},
+    {face:'w',index:6},{face:'w',index:7},{face:'w',index:8},
+    {face:'r',index:6},{face:'r',index:7},{face:'r',index:8} ],
+  // Row6
+  [ null,null,null, {face:'g',index:0}, {face:'g',index:1}, {face:'g',index:2}, null,null,null ],
+  // Row7
+  [ null,null,null, {face:'g',index:3}, {face:'g',index:4}, {face:'g',index:5}, null,null,null ],
+  // Row8
+  [ null,null,null, {face:'g',index:6}, {face:'g',index:7}, {face:'g',index:8}, null,null,null ],
 ];
-// Yellow side
-const yellowStrings = [
-  ["","","","g1","g2","g3","","",""],
-  ["","","","g4","g5","g6","","",""],
-  ["","","","g7","g8","g9","","",""],
-  ["o3","o6","o9","y1","y2","y3","r7","r4","r1"],
-  ["o2","o5","o8","y4","y5","y6","r8","r5","r2"],
-  ["o1","o4","o7","y7","y8","y9","r9","r6","r3"],
-  ["","","","b9","b8","b7","","",""],
-  ["","","","b6","b5","b4","","",""],
-  ["","","","b3","b2","b1","","",""]
+
+// Yellow net layout:
+const yellowLayout = [
+  // Row0
+  [ null,null,null, {face:'g',index:0}, {face:'g',index:1}, {face:'g',index:2}, null,null,null ],
+  // Row1
+  [ null,null,null, {face:'g',index:3}, {face:'g',index:4}, {face:'g',index:5}, null,null,null ],
+  // Row2
+  [ null,null,null, {face:'g',index:6}, {face:'g',index:7}, {face:'g',index:8}, null,null,null ],
+  // Row3
+  [ {face:'o',index:2},{face:'o',index:5},{face:'o',index:8},
+    {face:'y',index:0},{face:'y',index:1},{face:'y',index:2},
+    {face:'r',index:6},{face:'r',index:3},{face:'r',index:0} ],
+  // Row4
+  [ {face:'o',index:1},{face:'o',index:4},{face:'o',index:7},
+    {face:'y',index:3},{face:'y',index:4},{face:'y',index:5},
+    {face:'r',index:7},{face:'r',index:4},{face:'r',index:1} ],
+  // Row5
+  [ {face:'o',index:0},{face:'o',index:3},{face:'o',index:6},
+    {face:'y',index:6},{face:'y',index:7},{face:'y',index:8},
+    {face:'r',index:8},{face:'r',index:5},{face:'r',index:2} ],
+  // Row6
+  [ null,null,null, {face:'b',index:6}, {face:'b',index:7}, {face:'b',index:8}, null,null,null ],
+  // Row7
+  [ null,null,null, {face:'b',index:3}, {face:'b',index:4}, {face:'b',index:5}, null,null,null ],
+  // Row8
+  [ null,null,null, {face:'b',index:0}, {face:'b',index:1}, {face:'b',index:2}, null,null,null ],
 ];
 
-/**********************************************************************
- * 2) Parse layouts into 9×9 arrays: { digit, letter, label } or null
- **********************************************************************/
-function parseLayout(stringRows) {
-  const grid = [];
-  for (let r=0; r<9; r++) {
-    const rowArr = [];
-    for (let c=0; c<9; c++) {
-      const token = stringRows[r][c] || "";
-      if (!token) {
-        rowArr.push(null);
-      } else {
-        const letter = token[0];         // e.g. 'r'
-        const digit = parseInt(token.slice(1), 10); // e.g. 1
-        const label = letter + digit;    // e.g. 'r1'
-        rowArr.push({ digit, letter, label });
-      }
-    }
-    grid.push(rowArr);
-  }
-  return grid;
-}
-let whiteGrid = parseLayout(whiteStrings);
-let yellowGrid= parseLayout(yellowStrings);
+// For convenience, let’s store a dictionary for the faces so we can read/update them easily:
+const faceData = {
+  b: faceB, // shared
+  o: faceO, // shared
+  r: faceR, // shared
+  g: faceG, // shared
+  w: faceW, // White only
+  y: faceY  // Yellow only
+};
 
-/**********************************************************************
- * 3) Build a global map from label -> array of references
- *    e.g. labelMap["r1"] = [ { net:"white", row, col }, { net:"yellow", row, col } ]
- *    so we can quickly update the same label in both nets if it's b/o/r/g.
- **********************************************************************/
-let labelMap = {};
-
-/** Rebuild the labelMap from scratch, scanning both grids. */
-function rebuildLabelMap() {
-  labelMap = {};
-  // scan White
-  for (let r=0; r<9; r++){
-    for (let c=0; c<9; c++){
-      const cell = whiteGrid[r][c];
-      if (cell && cell.label) {
-        if (!labelMap[cell.label]) labelMap[cell.label] = [];
-        labelMap[cell.label].push({ net:"white", row:r, col:c });
-      }
-    }
-  }
-  // scan Yellow
-  for (let r=0; r<9; r++){
-    for (let c=0; c<9; c++){
-      const cell = yellowGrid[r][c];
-      if (cell && cell.label) {
-        if (!labelMap[cell.label]) labelMap[cell.label] = [];
-        labelMap[cell.label].push({ net:"yellow", row:r, col:c });
-      }
-    }
-  }
-}
-
-/**********************************************************************
- * 4) Rendering the 9×9 grids
- **********************************************************************/
-function renderGrid(containerId, gridData) {
+/*******************************************************************************
+ * 3) RENDERING A 9×9 NET
+ *    For each cell, we find {face, index}, then get faceData[face][index] for color.
+ *    If index===4 => center.
+ *    We show the text as "face + index" for debugging or can just show blank text.
+ ******************************************************************************/
+function renderNet(containerId, layout) {
   const container = document.getElementById(containerId);
-  container.innerHTML="";
-  for (let r=0; r<9; r++){
-    for (let c=0; c<9; c++){
-      const cell = gridData[r][c];
-      const div = document.createElement("div");
-      div.className = "cell";
-      if (!cell) {
-        div.classList.add("empty");
-        container.appendChild(div);
+  container.innerHTML = "";
+  for (let row=0; row<9; row++){
+    for (let col=0; col<9; col++){
+      const info = layout[row][col];
+      const cellDiv = document.createElement("div");
+      cellDiv.className="cell";
+
+      if (!info) {
+        // empty
+        cellDiv.classList.add("empty");
+        container.appendChild(cellDiv);
         continue;
       }
-      if (cell.digit===5) {
-        div.classList.add("center");
-      }
-      // background color
-      div.style.backgroundColor = letterToColor(cell.letter);
-      // text: cell.label, e.g. "r1"
-      div.textContent = cell.label;
 
-      // clickable if digit !=5
-      if (cell.digit!==5) {
-        div.addEventListener("click", ()=>onCellClick(containerId, r, c));
+      // info => {face:'b', index:0..8}
+      const { face, index } = info;
+      const color = faceData[face][index];
+      cellDiv.style.backgroundColor = color;
+
+      // center?
+      if (index===4) {
+        cellDiv.classList.add("center");
       }
-      container.appendChild(div);
+      // Optionally we can show text "face + index" or just the index
+      // cellDiv.textContent = face + index;
+      // We'll just show index for clarity:
+      cellDiv.textContent = index;
+
+      // clickable if index!==4
+      if (index!==4) {
+        cellDiv.addEventListener("click", ()=>{
+          openColorPicker(face, index);
+        });
+      }
+
+      container.appendChild(cellDiv);
     }
   }
 }
 
+/** Re-render both the White net and Yellow net. */
 function renderAll() {
-  renderGrid("whiteGrid", whiteGrid);
-  renderGrid("yellowGrid", yellowGrid);
+  renderNet("whiteNet", whiteLayout);
+  renderNet("yellowNet", yellowLayout);
 }
 
-/** letter -> color */
-function letterToColor(letter){
-  switch(letter){
-    case 'b':return "#0000ff";
-    case 'o':return "#ffa500";
-    case 'r':return "#ff0000";
-    case 'g':return "#00ff00";
-    case 'w':return "#ffffff";
-    case 'y':return "#ffff00";
-    default: return "#999";
-  }
+/*******************************************************************************
+ * 4) COLOR PICKER (MODAL)
+ ******************************************************************************/
+const colorModal = document.getElementById("colorModal");
+const cancelBtn   = document.getElementById("cancelColor");
+const colorOpts   = document.querySelectorAll(".color-option");
+
+let currentFace=null, currentIndex=null;
+
+function openColorPicker(face, index){
+  currentFace= face; 
+  currentIndex= index;
+  colorModal.classList.remove("hidden");
 }
-
-/**********************************************************************
- * 5) Clicking a cell to recolor it
- *    We read the old label, pick a new letter, rebuild labelMap.
- **********************************************************************/
-let selectedGridId=null, selectedRow=null, selectedCol=null;
-const modal = document.getElementById("colorModal");
-const cancelBtn = document.getElementById("cancelColor");
-const colorOptions = document.querySelectorAll(".color-option");
-
-function onCellClick(gridId, row, col){
-  selectedGridId= gridId;
-  selectedRow= row;
-  selectedCol= col;
-  modal.classList.remove("hidden");
-}
-
 function closeColorPicker(){
-  selectedGridId=null;
-  selectedRow=null;
-  selectedCol=null;
-  modal.classList.add("hidden");
+  currentFace=null;
+  currentIndex=null;
+  colorModal.classList.add("hidden");
 }
-
 cancelBtn.addEventListener("click", closeColorPicker);
-modal.addEventListener("click", (e)=>{
-  if(e.target===modal){
+colorModal.addEventListener("click", (e)=>{
+  if (e.target===colorModal){
     closeColorPicker();
   }
 });
-document.addEventListener("keydown", (e)=>{
+document.addEventListener("keydown",(e)=>{
   if(e.key==="Escape"){
     closeColorPicker();
   }
 });
 
-colorOptions.forEach(opt=>{
+// If user picks a color
+colorOpts.forEach(opt=>{
   opt.addEventListener("click", ()=>{
-    if(selectedGridId==null) return;
-    const newLetter = opt.dataset.letter; // e.g. 'r'
-    let gridData = (selectedGridId==="whiteGrid")? whiteGrid : yellowGrid;
-    let cell = gridData[selectedRow][selectedCol];
-    if(!cell) return;
+    if (currentFace==null) return;
+    const newColor= opt.dataset.color;
 
-    const oldLetter= cell.letter;  // e.g. 'r'
-    const oldDigit= cell.digit;    // e.g. 1
-    const oldLabel= cell.label;    // e.g. 'r1'
+    // update face array
+    faceData[currentFace][currentIndex] = newColor;
 
-    // set the new letter
-    cell.letter= newLetter;
-    cell.label = newLetter + oldDigit; // e.g. 'b1'
-
-    // Now, if oldLetter was among b/o/r/g, it means the oldLabel had possible references in labelMap.
-    // If newLetter is among b/o/r/g, we want to update them to the new label. 
-    // If newLetter is w/y, we do NOT mirror across nets, so we remove from the old references on the other net.
-    handleLabelChange(oldLabel, cell.label);
-
-    rebuildLabelMap();
     renderAll();
     closeColorPicker();
   });
 });
 
-/** Called after we recolor a cell from oldLabel->newLabel. 
-    - If oldLetter was b/o/r/g and newLetter is also b/o/r/g, rename in the other net from oldLabel->newLabel.
-    - If newLetter is w/y, remove from the other net. 
-*/
-function handleLabelChange(oldLabel, newLabel){
-  const oldLetter= oldLabel[0];
-  const newLetter= newLabel[0];
-  const wasLinked= ["b","o","r","g"].includes(oldLetter);
-  const isLinked= ["b","o","r","g"].includes(newLetter);
-
-  if(!labelMap[oldLabel]) return; // no references => done
-
-  // For each reference that used to have oldLabel
-  let refs= labelMap[oldLabel];
-  for(let i=0; i<refs.length; i++){
-    let { net, row, col } = refs[i];
-    // find the cell in that net
-    let netData= (net==="white")? whiteGrid : yellowGrid;
-    let cell= netData[row][col];
-    if(!cell) continue;
-    if(cell.label!==oldLabel) continue;
-
-    if(isLinked){
-      // rename to newLabel
-      cell.letter= newLetter;
-      cell.label = newLabel;
-    } else {
-      // newLetter is w/y => remove from the other net
-      // e.g. set letter=null or something
-      // But we want to keep the digit. We'll just clear letter/label:
-      cell.letter= null;
-      cell.label= "";
-    }
-  }
-}
-
-/**********************************************************************
- * 6) Rotation
- *    We define each face's 9 squares by row/col. Then rotating
- *    rearranges the letters among them. The digits remain the same,
- *    but we update each cell's label = letter + digit.
- **********************************************************************/
+/*******************************************************************************
+ * 5) ROTATION
+ *    We'll define a standard 3×3 index rotation:
+ *      For a face array [0..8], arranged as:
+ *        0 1 2
+ *        3 4 5
+ *        6 7 8
+ *      rotating cw => new positions
+ *        0->6, 1->3, 2->0, 3->7, 4->4, 5->1, 6->8, 7->5, 8->2
+ ******************************************************************************/
 const cwMap = [6,3,0,7,4,1,8,5,2];
 const ccwMap= [2,5,8,1,4,7,0,3,6];
 
-// For White net: B,O,W,R,G are present. Y is not.
-const faceCoordsWhite = {
-  b: [
-    {r:0,c:3},{r:0,c:4},{r:0,c:5},
-    {r:1,c:3},{r:1,c:4},{r:1,c:5},
-    {r:2,c:3},{r:2,c:4},{r:2,c:5}
-  ],
-  o: [
-    {r:3,c:0},{r:3,c:1},{r:3,c:2},
-    {r:4,c:0},{r:4,c:1},{r:4,c:2},
-    {r:5,c:0},{r:5,c:1},{r:5,c:2}
-  ],
-  w: [
-    {r:3,c:3},{r:3,c:4},{r:3,c:5},
-    {r:4,c:3},{r:4,c:4},{r:4,c:5},
-    {r:5,c:3},{r:5,c:4},{r:5,c:5}
-  ],
-  r: [
-    {r:3,c:6},{r:3,c:7},{r:3,c:8},
-    {r:4,c:6},{r:4,c:7},{r:4,c:8},
-    {r:5,c:6},{r:5,c:7},{r:5,c:8}
-  ],
-  g: [
-    {r:6,c:3},{r:6,c:4},{r:6,c:5},
-    {r:7,c:3},{r:7,c:4},{r:7,c:5},
-    {r:8,c:3},{r:8,c:4},{r:8,c:5}
-  ],
-  y: [] // not present in the white net
-};
-
-// For Yellow net: G,O,Y,R,B are present. W is not.
-const faceCoordsYellow = {
-  g: [
-    {r:0,c:3},{r:0,c:4},{r:0,c:5},
-    {r:1,c:3},{r:1,c:4},{r:1,c:5},
-    {r:2,c:3},{r:2,c:4},{r:2,c:5}
-  ],
-  o: [
-    {r:3,c:0},{r:3,c:1},{r:3,c:2},
-    {r:4,c:0},{r:4,c:1},{r:4,c:2},
-    {r:5,c:0},{r:5,c:1},{r:5,c:2}
-  ],
-  y: [
-    {r:3,c:3},{r:3,c:4},{r:3,c:5},
-    {r:4,c:3},{r:4,c:4},{r:4,c:5},
-    {r:5,c:3},{r:5,c:4},{r:5,c:5}
-  ],
-  r: [
-    {r:3,c:6},{r:3,c:7},{r:3,c:8},
-    {r:4,c:6},{r:4,c:7},{r:4,c:8},
-    {r:5,c:6},{r:5,c:7},{r:5,c:8}
-  ],
-  b: [
-    {r:6,c:3},{r:6,c:4},{r:6,c:5},
-    {r:7,c:3},{r:7,c:4},{r:7,c:5},
-    {r:8,c:3},{r:8,c:4},{r:8,c:5}
-  ],
-  w: []
-};
-
-/** Rotate the 9 squares in a net's face. We gather their letters, reorder them, and reassign. */
-function rotateFace(netData, coords, clockwise){
-  if(!coords || coords.length<9) return;
-  // Gather 9 squares
-  let squares = coords.map(pos => {
-    let cell = netData[pos.r][pos.c];
-    return cell ? { ...cell } : { digit:0, letter:null, label:"" };
-  });
-  const map = clockwise? cwMap : ccwMap;
-  // Reassign each index's letter to new index
-  for(let i=0; i<9; i++){
-    let newIdx= map[i]; // where squares[i]'s letter goes
-    let { digit, letter } = squares[i];
-    // place letter in squares[newIdx]'s location in netData
-    let pos= coords[newIdx];
-    let cell = netData[pos.r][pos.c];
-    if(cell){
-      cell.letter= letter;
-      cell.label = letter? (letter+cell.digit) : "";
-    }
+/** Rotate face array in place. */
+function rotateFaceArray(arr, clockwise=true){
+  const old = [...arr];
+  if (clockwise){
+    arr[0]= old[6]; arr[1]= old[3]; arr[2]= old[0];
+    arr[3]= old[7]; arr[4]= old[4]; arr[5]= old[1];
+    arr[6]= old[8]; arr[7]= old[5]; arr[8]= old[2];
+  } else {
+    arr[0]= old[2]; arr[1]= old[5]; arr[2]= old[8];
+    arr[3]= old[1]; arr[4]= old[4]; arr[5]= old[7];
+    arr[6]= old[0]; arr[7]= old[3]; arr[8]= old[6];
   }
 }
 
-/**********************************************************************
- * 7) Hook up rotate buttons
- **********************************************************************/
-const rotateDirSel = document.getElementById("rotateDir");
-let rotationDir="cw";
-rotateDirSel.addEventListener("change", ()=>{
-  rotationDir= rotateDirSel.value; // "cw" or "ccw"
+/*******************************************************************************
+ * 6) HOOKING UP ROTATION BUTTONS
+ *    b, o, r, g => shared face arrays => rotate => affects both nets
+ *    w => only the White net’s faceW
+ *    y => only the Yellow net’s faceY
+ ******************************************************************************/
+document.getElementById("rotateDir").addEventListener("change", (e)=>{
+  rotationDir= e.target.value;
 });
+let rotationDir="cw";
 
-document.querySelectorAll("[data-face]").forEach(btn=>{
+document.querySelectorAll("button[data-face]").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     const face= btn.dataset.face; // 'b','o','r','g','w','y'
     const cw= (rotationDir==="cw");
 
-    // If face is among b/o/r/g => we rotate in both nets
-    // If face= w => only white net
-    // If face= y => only yellow net
-    if(face==="w"){
-      rotateFace(whiteGrid, faceCoordsWhite.w, cw);
-    }
-    else if(face==="y"){
-      rotateFace(yellowGrid, faceCoordsYellow.y, cw);
-    }
-    else {
-      // b/o/r/g => rotate in both
-      rotateFace(whiteGrid, faceCoordsWhite[face], cw);
-      rotateFace(yellowGrid, faceCoordsYellow[face], cw);
-    }
-
-    // After rotation, we changed many cell letters => must fix labels, rebuild labelMap
-    fixLabels(whiteGrid);
-    fixLabels(yellowGrid);
-    rebuildLabelMap();
+    rotateFaceArray(faceData[face], cw);
+    // re-render
     renderAll();
   });
 });
 
-/** fixLabels: for each cell, label= letter+digit */
-function fixLabels(netData){
-  for(let r=0; r<9; r++){
-    for(let c=0; c<9; c++){
-      let cell= netData[r][c];
-      if(cell && cell.letter){
-        cell.label= cell.letter+ cell.digit;
-      } else if(cell) {
-        cell.label= "";
-      }
-    }
-  }
-}
-
-/**********************************************************************
- * 8) INIT
- **********************************************************************/
+/*******************************************************************************
+ * 7) INITIALIZE
+ ******************************************************************************/
 document.addEventListener("DOMContentLoaded", ()=>{
-  rebuildLabelMap();
   renderAll();
 });
 </script>
