@@ -35,69 +35,75 @@ if (!fs.existsSync(IMAGES_DIR)) {
   console.log(`Please place your cube face images in this directory with names: white.jpg, red.jpg, green.jpg, yellow.jpg, orange.jpg, blue.jpg`);
 }
 
-// Helper function to convert RGB to HSV
-function rgbToHsv(r, g, b) {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h, s, v = max;
-
-  const d = max - min;
-  s = max === 0 ? 0 : d / max;
-
-  if (max === min) {
-    h = 0; // achromatic
-  } else {
-    switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h /= 6;
-  }
-
-  return { h: h * 360, s: s * 100, v: v * 100 };
-}
-
-// Function to determine the color of a pixel based on HSV values
-function determineColor(hsv) {
-  // Simple HSV ranges for cube colors
-  if (hsv.s < 20 && hsv.v > 70) return 'w'; // white (low saturation, high value)
-  if ((hsv.h >= 350 || hsv.h <= 10) && hsv.s > 50) return 'r'; // red
-  if (hsv.h >= 90 && hsv.h <= 150 && hsv.s > 40) return 'g'; // green
-  if (hsv.h >= 40 && hsv.h <= 70 && hsv.s > 50) return 'y'; // yellow
-  if (hsv.h >= 10 && hsv.h <= 40 && hsv.s > 50) return 'o'; // orange
-  if (hsv.h >= 180 && hsv.h <= 240 && hsv.s > 40) return 'b'; // blue
-  
-  // If no match, find the closest color
-  const colorRanges = [
-    { color: 'w', h: 0, s: 0, v: 100 },
-    { color: 'r', h: 0, s: 100, v: 100 },
-    { color: 'g', h: 120, s: 100, v: 100 },
-    { color: 'y', h: 60, s: 100, v: 100 },
-    { color: 'o', h: 30, s: 100, v: 100 },
-    { color: 'b', h: 240, s: 100, v: 100 }
+// Improved function to determine the color using only RGB values
+function determineColorByRGB(r, g, b) {
+  // Define standard RGB values for Rubik's cube colors
+  const colorReferences = [
+    { color: 'w', r: 255, g: 255, b: 255 }, // White
+    { color: 'y', r: 255, g: 255, b: 0 },   // Yellow
+    { color: 'r', r: 255, g: 0, b: 0 },     // Red
+    { color: 'o', r: 255, g: 165, b: 0 },   // Orange
+    { color: 'g', r: 0, g: 255, b: 0 },     // Green
+    { color: 'b', r: 0, g: 0, b: 255 }      // Blue
   ];
   
-  let minDistance = Infinity;
-  let closestColor = 'u';
+  // White detection - high values in all channels
+  if (r > 200 && g > 200 && b > 200) {
+    return 'w';
+  }
   
-  for (const range of colorRanges) {
-    // Calculate distance in HSV space
-    let hDist = Math.min(Math.abs(hsv.h - range.h), 360 - Math.abs(hsv.h - range.h));
-    let sDist = Math.abs(hsv.s - range.s);
-    let vDist = Math.abs(hsv.v - range.v);
-    
-    // Weight the distances (hue is most important)
-    const distance = hDist * 1.0 + sDist * 0.8 + vDist * 0.6;
+  // Yellow detection - high red and green, low blue
+  if (r > 180 && g > 180 && b < 100) {
+    return 'y';
+  }
+  
+  // Red detection - high red, low green and blue
+  if (r > 150 && g < 100 && b < 100) {
+    return 'r';
+  }
+  
+  // Orange detection - high red, medium green, low blue
+  if (r > 180 && g > 80 && g < 180 && b < 80) {
+    return 'o';
+  }
+  
+  // Green detection - low red, high green, low blue
+  if (r < 100 && g > 150 && b < 100) {
+    return 'g';
+  }
+  
+  // Blue detection - low red, low green, high blue
+  if (r < 100 && g < 100 && b > 150) {
+    return 'b';
+  }
+  
+  // If no direct match, calculate the Euclidean distance in RGB space
+  let minDistance = Infinity;
+  let closestColor = 'u'; // unknown as default
+  
+  for (const ref of colorReferences) {
+    const distance = Math.sqrt(
+      Math.pow(r - ref.r, 2) + 
+      Math.pow(g - ref.g, 2) + 
+      Math.pow(b - ref.b, 2)
+    );
     
     if (distance < minDistance) {
       minDistance = distance;
-      closestColor = range.color;
+      closestColor = ref.color;
     }
+  }
+  
+  // Additional checks to resolve common confusions
+  
+  // Orange vs Red clarification (orange has more green)
+  if (closestColor === 'r' && g > 80) {
+    return 'o';
+  }
+  
+  // Yellow vs White clarification (yellow has less blue)
+  if (closestColor === 'w' && b < 150 && r > 180 && g > 180) {
+    return 'y';
   }
   
   return closestColor;
@@ -115,7 +121,7 @@ async function processCubeFace(imagePath, faceIndex) {
     
     // Process the image
     const { data, info } = await sharp(imagePath)
-      .resize(150, 150, { fit: 'contain' })
+      .resize(300, 300, { fit: 'contain' }) // Increased resolution for better analysis
       .removeAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
@@ -131,6 +137,9 @@ async function processCubeFace(imagePath, faceIndex) {
     // Array to store colors for each cell
     const cellColors = [];
     
+    // Generate a debug image with sampled points
+    const debugPixels = Buffer.from(data);
+    
     // Sample each cell in the grid
     for (let row = 0; row < gridSize; row++) {
       for (let col = 0; col < gridSize; col++) {
@@ -138,12 +147,13 @@ async function processCubeFace(imagePath, faceIndex) {
         const centerX = Math.floor((col + 0.5) * cellWidth);
         const centerY = Math.floor((row + 0.5) * cellHeight);
         
-        // Sample a small region around the center
+        // Use a larger sampling area for more accurate color detection
+        const sampleSize = 5;
         let rSum = 0, gSum = 0, bSum = 0;
         let sampleCount = 0;
         
-        for (let dy = -2; dy <= 2; dy++) {
-          for (let dx = -2; dx <= 2; dx++) {
+        for (let dy = -sampleSize; dy <= sampleSize; dy++) {
+          for (let dx = -sampleSize; dx <= sampleSize; dx++) {
             const sx = centerX + dx;
             const sy = centerY + dy;
             
@@ -153,6 +163,14 @@ async function processCubeFace(imagePath, faceIndex) {
               gSum += data[pixelIndex + 1];
               bSum += data[pixelIndex + 2];
               sampleCount++;
+              
+              // Mark the sampled pixels in the debug image (as blue dots)
+              if (dx === 0 && dy === 0) {
+                // Mark center in red
+                debugPixels[pixelIndex] = 255;
+                debugPixels[pixelIndex + 1] = 0;
+                debugPixels[pixelIndex + 2] = 0;
+              }
             }
           }
         }
@@ -162,16 +180,23 @@ async function processCubeFace(imagePath, faceIndex) {
         const g = Math.round(gSum / sampleCount);
         const b = Math.round(bSum / sampleCount);
         
-        // Convert RGB to HSV
-        const hsv = rgbToHsv(r, g, b);
-        
-        // Determine the color
-        const color = determineColor(hsv);
+        // Determine the color using only RGB
+        const color = determineColorByRGB(r, g, b);
         
         // Add to cell colors
         cellColors.push(color);
+        
+        // Output debug info
+        console.log(`Cell [${row},${col}]: RGB(${r},${g},${b}) -> ${color}`);
       }
     }
+    
+    // Save debug image
+    const debugOutputPath = path.join(OUTPUT_DIR, `debug_face_${faceIndex+1}.png`);
+    await sharp(debugPixels, { raw: { width, height, channels: 3 } })
+      .png()
+      .toFile(debugOutputPath);
+    console.log(`Saved debug image to ${debugOutputPath}`);
     
     // Get the center color (which should be the face color)
     const centerColor = cellColors[4]; // Center of 3x3 grid is at index 4
@@ -200,7 +225,7 @@ async function processCubeFace(imagePath, faceIndex) {
 
 // Main function
 async function main() {
-  console.log("Simplified Rubik's Cube Face Scanner");
+  console.log("RGB-Based Rubik's Cube Face Scanner");
   console.log("===================================");
   
   // Check if the image paths exist
@@ -251,6 +276,18 @@ async function main() {
   try {
     fs.writeFileSync(path.join(OUTPUT_DIR, 'cube_colors.txt'), finalString);
     console.log(`Saved color string to ${path.join(OUTPUT_DIR, 'cube_colors.txt')}`);
+    
+    // Also output a human-readable version
+    const readableVersion = `
+White face: ${faceStrings['w'] || 'missing'}
+Red face: ${faceStrings['r'] || 'missing'}
+Green face: ${faceStrings['g'] || 'missing'}
+Yellow face: ${faceStrings['y'] || 'missing'}
+Orange face: ${faceStrings['o'] || 'missing'}
+Blue face: ${faceStrings['b'] || 'missing'}
+    `;
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'cube_colors_readable.txt'), readableVersion);
+    console.log(`Saved human-readable version to ${path.join(OUTPUT_DIR, 'cube_colors_readable.txt')}`);
   } catch (err) {
     console.error(`Failed to save color string: ${err.message}`);
   }
