@@ -1,12 +1,7 @@
 from collections import Counter
 
 text = """
-wybgwygyw
-rrrgrwyrw
-yogwgrbbr
-orgyywwgb
-gwoooorby
-ygobbboob
+wybgwygywyogwgrbbrrrrgrwyrworgyywwgbgwoooorbyygobbboob
 """
 
 # Remove newlines and count occurrences of letters

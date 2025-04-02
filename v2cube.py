@@ -21,12 +21,12 @@ def mapColorToFace(faceArr, faceString):
 # Replace with your own 9-letter color strings that
 # match white=up, green=front, blue=back, orange=left,
 # red=right, yellow=down, etc.
-mapColorToFace(u, "wybgwygyw")
-mapColorToFace(r, "rrrgrwyrw")
-mapColorToFace(f, "yogwgrbbr")
-mapColorToFace(d, "orgyywwgb")
-mapColorToFace(l, "gwoooorby")
-mapColorToFace(b, "ygobbboob")
+mapColorToFace(u, "ggwywywyb")
+mapColorToFace(r, "rwwrrrrgy")
+mapColorToFace(f, "rbbrgwgoy")
+mapColorToFace(d, "bgwwyygro")
+mapColorToFace(l, "ybroooowg")
+mapColorToFace(b, "boobbbogy")
 
 # ------------------------------------------------------------
 # 2) DEFINE OPPOSITE COLORS & VALID COLORS
@@ -301,3 +301,9 @@ if valid_state_str is None:
 else:
     print("Found valid orientation:")
     print(valid_state_str)
+    
+    
+    
+    
+    
+    
