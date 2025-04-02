@@ -1,384 +1,286 @@
-class Square:
-    def __init__(self, color, face_id):
-        self.color = color
-        self.face_id = face_id
-    
-    def __str__(self):
-        return f"{self.color} (on face {self.face_id})"
+def rotate_face_cw(face_stickers):
+    """
+    Rotate a 3×3 face 90 degrees clockwise.
+    face_stickers is a list of length 9 representing:
+       0 1 2
+       3 4 5
+       6 7 8
+    Returns a new list representing the rotated face.
+    """
+    # Mapping for 90° clockwise rotation:
+    return [
+        face_stickers[6],  # old index 6 -> new index 0
+        face_stickers[3],  # old index 3 -> new index 1
+        face_stickers[0],  # old index 0 -> new index 2
+        face_stickers[7],  # old index 7 -> new index 3
+        face_stickers[4],  # old index 4 -> new index 4 (center remains center)
+        face_stickers[1],  # old index 1 -> new index 5
+        face_stickers[8],  # old index 8 -> new index 6
+        face_stickers[5],  # old index 5 -> new index 7
+        face_stickers[2],  # old index 2 -> new index 8
+    ]
 
+# Opposite colors rule: no piece can contain a pair of opposites.
+OPPOSITE = {
+    'W': 'Y', 'Y': 'W',
+    'G': 'B', 'B': 'G',
+    'R': 'O', 'O': 'R'
+}
 
-class Face:
-    # Positions (for reference):
-    #  0 1 2
-    #  3 4 5
-    #  6 7 8
-    def __init__(self, face_id, squares=None):
-        self.face_id = face_id
-        # Initialize with empty squares if none provided
-        self.squares = squares if squares else [None] * 9
-    
-    def set_square(self, position, color):
-        """Set the color of a square at a specific position."""
-        self.squares[position] = Square(color, self.face_id)
-    
-    def get_edge(self, edge):
-        """
-        Returns the three squares on a specific edge:
-          'top': positions 0, 1, 2
-          'right': positions 2, 5, 8
-          'bottom': positions 6, 7, 8
-          'left': positions 0, 3, 6
-        """
-        if edge == 'top':
-            return [self.squares[0], self.squares[1], self.squares[2]]
-        elif edge == 'right':
-            return [self.squares[2], self.squares[5], self.squares[8]]
-        elif edge == 'bottom':
-            return [self.squares[6], self.squares[7], self.squares[8]]
-        elif edge == 'left':
-            return [self.squares[0], self.squares[3], self.squares[6]]
-        else:
-            raise ValueError(f"Invalid edge: {edge}")
-    
-    def rotate_clockwise(self):
-        """Rotate the face 90 degrees clockwise."""
-        old_squares = self.squares.copy()
-        
-        # Mapping for a 90° clockwise rotation:
-        #  0 1 2     6 3 0
-        #  3 4 5  -> 7 4 1
-        #  6 7 8     8 5 2
-        rotation_map = {0: 6, 1: 3, 2: 0,
-                        3: 7, 4: 4, 5: 1,
-                        6: 8, 7: 5, 8: 2}
-        
-        for old_pos, new_pos in rotation_map.items():
-            self.squares[new_pos] = old_squares[old_pos]
-        
-        return self 
-    
-    def rotate_counterclockwise(self):
-        """Rotate the face 90 degrees counterclockwise."""
-        # Applying three clockwise rotations is equivalent to one counterclockwise rotation.
-        self.rotate_clockwise()
-        self.rotate_clockwise()
-        self.rotate_clockwise()
-        return self
-    
-    def rotate_180(self):
-        """Rotate the face 180 degrees."""
-        # Two clockwise rotations = 180° turn.
-        self.rotate_clockwise()
-        self.rotate_clockwise()
-        return self
-    
-    def clone(self):
-        """Create a deep copy of this face."""
-        new_face = Face(self.face_id)
-        for i, square in enumerate(self.squares):
-            if square:
-                new_face.set_square(i, square.color)
-        return new_face
-    
-    def __str__(self):
-        """String representation for debugging."""
-        result = f"Face {self.face_id}:\n"
-        for i in range(0, 9, 3):
-            result += f"{self.squares[i].color} {self.squares[i+1].color} {self.squares[i+2].color}\n"
-        return result
+# We will define the 12 edges and 8 corners in terms of (face_label, index_on_that_face).
+# The labeling of indices is as follows for each face:
+#
+#   0 1 2
+#   3 4 5
+#   6 7 8
+#
+# We arrange the net in “unfolded” form:
+#          U0 U1 U2
+#          U3 U4 U5
+#          U6 U7 U8
+# L0 L1 L2  F0 F1 F2  R0 R1 R2  B0 B1 B2
+# L3 L4 L5  F3 F4 F5  R3 R4 R5  B3 B4 B5
+# L6 L7 L8  F6 F7 F8  R6 R7 R8  B6 B7 B8
+#          D0 D1 D2
+#          D3 D4 D5
+#          D6 D7 D8
+#
+# Then we define each edge by matching the squares that physically share a border.
+#
+EDGES = [
+    # U-F edge
+    (('U', 6), ('F', 0)),
+    (('U', 7), ('F', 1)),
+    (('U', 8), ('F', 2)),
 
+    # U-R edge
+    (('U', 2), ('R', 0)),
+    (('U', 5), ('R', 3)),
+    (('U', 8), ('R', 6)),  # Note: U8 is also part of U-F edge above, but that's okay
 
-class RubiksCube:
-    def __init__(self):
-        self.faces = {}
-        face_ids = ['front', 'right', 'back', 'left', 'up', 'down']
-        for face_id in face_ids:
-            self.faces[face_id] = Face(face_id)
-        
-        # Expected center colors for standard orientation
-        self.expected_centers = {
-            'front': 'G',  # Green
-            'right': 'R',  # Red
-            'back':  'B',  # Blue
-            'left':  'O',  # Orange
-            'up':    'W',  # White
-            'down':  'Y'   # Yellow
-        }
-        
-        # Define the connections between faces: (face_id, edge) pairs that must match.
-        self.connections = [
-            # Front face connections
-            (('front', 'top'),    ('up',    'bottom')),   # Front top to Up bottom
-            (('front', 'right'),  ('right', 'left')),     # Front right to Right left
-            (('front', 'bottom'), ('down',  'top')),      # Front bottom to Down top
-            (('front', 'left'),   ('left',  'right')),    # Front left to Left right
-            
-            # Right face connections
-            (('right', 'top'),    ('up',    'right')),    
-            (('right', 'right'),  ('back',  'left')),    
-            (('right', 'bottom'), ('down',  'right')),   
-            
-            # Back face connections
-            (('back', 'top'),     ('up',    'top')),      # Back top to Up top (inverted)
-            (('back', 'right'),   ('left',  'left')),     
-            (('back', 'bottom'),  ('down',  'bottom')),   # Back bottom to Down bottom (inverted)
-            
-            # Left face connections
-            (('left', 'top'),     ('up',    'left')),     
-            (('left', 'bottom'),  ('down',  'left'))
-        ]
-        
-        # Build a dict mapping faces -> connections for easy lookup
-        self.face_connections = {}
-        for (face1_id, edge1), (face2_id, edge2) in self.connections:
-            if face1_id not in self.face_connections:
-                self.face_connections[face1_id] = []
-            if face2_id not in self.face_connections:
-                self.face_connections[face2_id] = []
-            self.face_connections[face1_id].append((edge1, face2_id, edge2))
-            self.face_connections[face2_id].append((edge2, face1_id, edge1))
+    # U-L edge
+    (('U', 0), ('L', 2)),
+    (('U', 3), ('L', 5)),
+    (('U', 6), ('L', 8)),
+
+    # U-B edge
+    (('U', 1), ('B', 2)),
+    (('U', 4), ('B', 5)),
+    (('U', 7), ('B', 8)),
+
+    # F-R edge
+    (('F', 2), ('R', 0)),
+    (('F', 5), ('R', 1)),
+    (('F', 8), ('R', 2)),
+
+    # R-B edge
+    (('R', 2), ('B', 0)),
+    (('R', 5), ('B', 3)),
+    (('R', 8), ('B', 6)),
+
+    # B-L edge
+    (('B', 2), ('L', 0)),
+    (('B', 5), ('L', 3)),
+    (('B', 8), ('L', 6)),
+
+    # L-F edge
+    (('L', 2), ('F', 0)),
+    (('L', 5), ('F', 3)),
+    (('L', 8), ('F', 6)),
+
+    # D-F edge
+    (('D', 0), ('F', 6)),
+    (('D', 1), ('F', 7)),
+    (('D', 2), ('F', 8)),
+
+    # D-R edge
+    (('D', 2), ('R', 6)),
+    (('D', 5), ('R', 7)),
+    (('D', 8), ('R', 8)),
+
+    # D-L edge
+    (('D', 0), ('L', 8)),
+    (('D', 3), ('L', 7)),
+    (('D', 6), ('L', 6)),
+
+    # D-B edge
+    (('D', 1), ('B', 8)),
+    (('D', 4), ('B', 7)),
+    (('D', 7), ('B', 6)),
+]
+
+# Similarly, define corners as sets of three squares that physically meet.
+CORNERS = [
+    # Top layer corners
+    (('U', 0), ('L', 2), ('B', 2)),
+    (('U', 2), ('B', 0), ('R', 0)),
+    (('U', 6), ('L', 8), ('F', 0)),
+    (('U', 8), ('F', 2), ('R', 6)),
+
+    # Bottom layer corners
+    (('D', 0), ('L', 8), ('F', 6)),
+    (('D', 2), ('F', 8), ('R', 6)),
+    (('D', 6), ('L', 6), ('B', 8)),
+    (('D', 8), ('B', 6), ('R', 8)),
+]
+
+def colors_are_conflicting(*color_list):
+    """
+    Return True if there's any conflict among the given colors:
+    - Duplicate color (e.g., 'R', 'R')
+    - Opposite color pair in the same piece (e.g. 'W' and 'Y')
+    """
+    # If you have duplicates, that’s a conflict.
+    if len(set(color_list)) < len(color_list):
+        return True
+    # If any pair is opposite, conflict.
+    for c in color_list:
+        for d in color_list:
+            if d == OPPOSITE.get(c, None):
+                return True
+    return False
+
+def check_cube(cube_dict):
+    """
+    Given a dictionary:
+       cube_dict['U'] = list of 9 color chars,
+       cube_dict['R'] = ...
+       ... etc. ...
+    Check all edges and corners for conflicts.
+    If no conflicts, return True. Otherwise False.
+    """
+
+    # Check edges
+    for (f1_idx, f2_idx) in EDGES:
+        (face1, index1) = f1_idx
+        (face2, index2) = f2_idx
+        c1 = cube_dict[face1][index1]
+        c2 = cube_dict[face2][index2]
+        if colors_are_conflicting(c1, c2):
+            return False
+
+    # Check corners
+    for trip in CORNERS:
+        colors = [cube_dict[f][i] for (f, i) in trip]
+        if colors_are_conflicting(*colors):
+            return False
+
+    # Also check total color counts == 9 each
+    color_count = {}
+    for face in ['U','F','R','B','L','D']:
+        for c in cube_dict[face]:
+            color_count[c] = color_count.get(c, 0) + 1
+    # We want exactly 6 distinct colors, each with 9 occurrences:
+    # but if you want to be more flexible, skip this check or adapt it
+    for c in ['W','Y','G','B','R','O']:
+        if color_count.get(c, 0) != 9:
+            return False
+
+    return True
+
+def all_rotations_of_face(face_stickers):
+    """
+    Generate all 4 possible 90-degree increments for a face.
+    Yields tuples: (0, face_stickers), (1, rotated_once), (2, rotated_twice), (3, rotated_thrice).
+    The first element in each tuple is how many times we rotated clockwise.
+    """
+    current = face_stickers
+    yield (0, current)
+    for r in range(1,4):
+        current = rotate_face_cw(current)
+        yield (r, current)
+
+def solve_cube_orientation(initial_face_data):
+    """
+    initial_face_data is a dict with keys like 'front','right','back','left','up','down',
+    each being a length-9 list of color chars.
     
-    def populate_from_images(self, face_data):
-        """
-        Populate the cube from image processing data.
-        face_data should be a dictionary mapping face_id -> list of 9 colors
-        """
-        for face_id, colors in face_data.items():
-            for position, color in enumerate(colors):
-                self.faces[face_id].set_square(position, color)
-    
-    def clone(self):
-        """Create a deep copy of this cube."""
-        new_cube = RubiksCube()
-        for face_id, face in self.faces.items():
-            new_cube.faces[face_id] = face.clone()
-        return new_cube
-    
-    def validate_edge(self, face1_id, edge1, face2_id, edge2):
-        """
-        Check if a specific edge connection is valid (i.e., no matching colors).
-        Returns (is_valid, errors).
-        """
-        face1 = self.faces[face1_id]
-        face2 = self.faces[face2_id]
-        
-        edge1_squares = face1.get_edge(edge1)
-        edge2_squares = face2.get_edge(edge2)
-        
-        # Some connections (back->up or back->down) need reversed indexing
-        if (face1_id == 'back' and face2_id == 'up') or \
-           (face1_id == 'back' and face2_id == 'down'):
-            edge2_squares = list(reversed(edge2_squares))
-        
-        errors = []
-        for i in range(3):
-            if edge1_squares[i].color == edge2_squares[i].color:
-                errors.append(
-                    f"Adjacent squares on face {face1_id} ({edge1}) and "
-                    f"face {face2_id} ({edge2}) share color '{edge1_squares[i].color}'."
-                )
-        
-        return (len(errors) == 0), errors
-    
-    def validate_alignment(self):
-        """
-        Check if the cube faces are correctly aligned.
-        Returns (is_valid, errors, solutions).
-        """
-        errors = []
-        solutions = []
-        
-        # 1) Check center colors match standard orientation
-        center_errors = []
-        for face_id, expected_color in self.expected_centers.items():
-            center_color = self.faces[face_id].squares[4].color
-            if center_color != expected_color:
-                center_errors.append(
-                    f"Invalid center for {face_id}: expected '{expected_color}', found '{center_color}'."
-                )
-        
-        if center_errors:
-            errors.extend(center_errors)
-            solutions.append(
-                "Center colors don't match standard orientation.\n"
-                "Make sure: front=Green, right=Red, back=Blue, left=Orange, up=White, down=Yellow."
-            )
-        
-        # 2) Check color count (should have exactly 9 of each color)
-        all_colors = [sq.color for face in self.faces.values() for sq in face.squares]
-        color_counts = {}
-        for color in all_colors:
-            color_counts[color] = color_counts.get(color, 0) + 1
-        
-        count_errors = []
-        for color, count in color_counts.items():
-            if count != 9:
-                count_errors.append(
-                    f"Color '{color}' appears {count} times (should be 9)."
-                )
-        
-        if count_errors:
-            errors.extend(count_errors)
-            solutions.append(
-                "Color counts don't match a valid Rubik's cube. Each color should appear exactly 9 times."
-            )
-        
-        # 3) Check edge alignment
-        edge_errors = []
-        problematic_faces = set()
-        for (face1_id, edge1), (face2_id, edge2) in self.connections:
-            is_valid, found_errors = self.validate_edge(face1_id, edge1, face2_id, edge2)
-            if not is_valid:
-                edge_errors.extend(found_errors)
-                problematic_faces.add(face1_id)
-                problematic_faces.add(face2_id)
-        
-        if edge_errors:
-            errors.extend(edge_errors)
-            # Attempt to find solutions for each problematic face
-            for face_id in problematic_faces:
-                corrected = self.find_correct_orientation(face_id)
-                if corrected:
-                    rotation, fixed_edges = corrected
-                    solutions.append(
-                        f"Rotate face '{face_id}' {rotation} to potentially fix {fixed_edges} edge alignment(s)."
-                    )
-        
-        return (len(errors) == 0), errors, solutions
-    
-    def find_correct_orientation(self, face_id):
-        """
-        Try rotating a single face to see if it fixes more edge conflicts.
-        Returns (rotation_name, fixed_edge_count) if a better orientation is found, else None.
-        """
-        original_valid_edges = self.count_valid_edges(face_id)
-        best_rotation = None
-        best_valid_edges = original_valid_edges
-        
-        # Try all rotations
-        test_cubes = {
-            "90° clockwise":        self.clone(),
-            "180°":                 self.clone(),
-            "90° counterclockwise": self.clone()
-        }
-        
-        test_cubes["90° clockwise"].faces[face_id].rotate_clockwise()
-        test_cubes["180°"].faces[face_id].rotate_180()
-        test_cubes["90° counterclockwise"].faces[face_id].rotate_counterclockwise()
-        
-        for rotation_name, rotated_cube in test_cubes.items():
-            valid_edges = rotated_cube.count_valid_edges(face_id)
-            if valid_edges > best_valid_edges:
-                best_rotation = rotation_name
-                best_valid_edges = valid_edges
-        
-        if best_rotation:
-            return best_rotation, (best_valid_edges - original_valid_edges)
+    Steps:
+      1) Identify which face is W-center, Y-center, G-center, B-center, R-center, O-center.
+      2) Rename them to the standard 'U','D','F','B','R','L'.
+      3) Try all 4 rotations for each of the 6 faces (4^6=4096 combos).
+      4) Return the first orientation that meets the constraints.
+    """
+    # 1) Identify center color (index 4).
+    # We'll build a face_map that goes from color -> old_label
+    center_to_label = {}
+    for old_label in initial_face_data:
+        center_color = initial_face_data[old_label][4]
+        center_to_label[center_color] = old_label
+
+    # We expect to find: W, Y, G, B, R, O each in center_to_label
+    required_centers = ['W','Y','G','B','R','O']
+    for rc in required_centers:
+        if rc not in center_to_label:
+            raise ValueError(f"Center color {rc} not found in the provided face data! Can't proceed.")
+
+    # 2) Build a new dict with standard keys 'U','F','R','B','L','D'.
+    #    We pull the data from initial_face_data but rename them based on center color:
+    #       face with center W -> 'U'
+    #       face with center Y -> 'D'
+    #       face with center G -> 'F'
+    #       face with center B -> 'B'
+    #       face with center R -> 'R'
+    #       face with center O -> 'L'
+    new_cube = {
+        'U': list(initial_face_data[center_to_label['W']]),
+        'D': list(initial_face_data[center_to_label['Y']]),
+        'F': list(initial_face_data[center_to_label['G']]),
+        'B': list(initial_face_data[center_to_label['B']]),
+        'R': list(initial_face_data[center_to_label['R']]),
+        'L': list(initial_face_data[center_to_label['O']]),
+    }
+
+    # 3) Try all 4 orientations for each face, in a brute-force manner.
+    #    That is, we have 6 faces, each can be in 4 possible rotations -> 4^6 = 4096.
+    #    We'll just do a 6-level nested loop or a quick recursive approach.
+
+    faces_in_order = ['U','F','R','B','L','D']
+
+    # We'll define a small recursive function that assigns orientation to each face.
+    def backtrack(face_index, current_cube):
+        if face_index == len(faces_in_order):
+            # All faces oriented. Check constraints.
+            if check_cube(current_cube):
+                return current_cube
+            else:
+                return None
+
+        face_label = faces_in_order[face_index]
+        original_face_data = current_cube[face_label]
+
+        for (rot_count, rotated_face) in all_rotations_of_face(original_face_data):
+            # Temporarily assign the rotated version
+            current_cube[face_label] = rotated_face
+            result = backtrack(face_index+1, current_cube)
+            if result is not None:
+                return result  # found a valid orientation
+            # Otherwise revert and keep trying
+        # revert
+        current_cube[face_label] = original_face_data
         return None
-    
-    def count_valid_edges(self, face_id):
-        """
-        Count how many valid edges (out of all edges that belong to face_id) exist right now.
-        """
-        valid_count = 0
-        for edge, other_face_id, other_edge in self.face_connections.get(face_id, []):
-            is_valid, _ = self.validate_edge(face_id, edge, other_face_id, other_edge)
-            if is_valid:
-                valid_count += 1
-        return valid_count
-    
-    def __str__(self):
-        """Print all faces for debugging."""
-        result = "Rubik's Cube:\n"
-        for fid, face in self.faces.items():
-            result += str(face) + "\n"
-        return result
+
+    solution = backtrack(0, new_cube)
+    if solution is None:
+        raise ValueError("No valid orientation found under the given constraints!")
+    return solution
 
 
-def process_cube_images(image_files):
-    """
-    Returns a dictionary with 6 faces (keys) and lists of 9 colors (values).
-    Currently returns mock data.
-    Replace with real image-processing code if needed.
-    """
-    # Here is the mock data that your script uses by default:
-    mock_data = {
-        'front': ['W','R','W','B','G','W','Y','W','Y'],
+# -----------------
+# EXAMPLE USAGE
+if __name__ == "__main__":
+
+    face_data = {
+        'front': ['Y','B','W','W','G','R','Y','W','W'],
         'right': ['R','B','B','O','R','Y','B','Y','R'],
         'back':  ['R','G','Y','B','B','G','W','Y','G'],
-        'left':  ['O','W','O','O','O','Y','G','R','W'],
-        'up':    ['G','B','B','R','W','G','Y','W','O'],
+        'left':  ['O','O','G','Y','O','B','W','G','W'],
+        'up':    ['B','G','O','B','W','W','G','R','O'],
         'down':  ['B','G','R','O','Y','R','O','O','G']
     }
-    return mock_data
 
+    final_cube = solve_cube_orientation(face_data)
 
-def extract_colors_from_image(image_path):
-    """
-    A placeholder function that would do real image processing.
-    Right now, it returns random colors for demonstration only.
-    """
-    import random
-    colors = ['G', 'R', 'B', 'O', 'W', 'Y']
-    return [random.choice(colors) for _ in range(9)]
-
-
-def main():
-    # Normally you'd map each face to an actual image file (photo of that face).
-    image_files = {
-        'front': "front.jpg",
-        'right': "right.jpg",
-        'back':  "back.jpg",
-        'left':  "left.jpg",
-        'up':    "up.jpg",
-        'down':  "down.jpg"
-    }
-    
-    # Option 1: Use the mock data from process_cube_images
-    face_data = process_cube_images(image_files)
-    
-    # Option 2 (comment out Option 1 above) and use your own face_data manually:
-    #
-    # face_data = {
-    #     'front': ['Y','B','W','W','G','R','Y','W','W'],
-    #     'right': ['R','B','B','O','R','Y','B','Y','R'],
-    #     'back':  ['R','G','Y','B','B','G','W','Y','G'],
-    #     'left':  ['O','O','G','Y','O','B','W','G','W'],
-    #     'up':    ['B','G','O','B','W','W','G','R','O'],
-    #     'down':  ['B','G','R','O','Y','R','O','O','G']
-    # }
-    
-    # Option 3 (comment out Option 1 above) to do actual image processing:
-    #
-    # face_data = {}
-    # for face_id, img_path in image_files.items():
-    #     face_data[face_id] = extract_colors_from_image(img_path)
-    
-    # Create and populate the Rubik's Cube
-    cube = RubiksCube()
-    cube.populate_from_images(face_data)
-    
-    # Validate the cube
-    is_valid, errors, solutions = cube.validate_alignment()
-    
-    if is_valid:
-        print("The cube is valid and correctly aligned!")
-    else:
-        print("The cube has alignment issues:\n")
-        for error in errors:
-            print(f"- {error}")
-        
-        print("\nPossible solutions:")
-        if solutions:
-            for solution in solutions:
-                print(f"- {solution}")
-        else:
-            print("- No automatic corrections found. Try rotating faces manually.")
-        
-        print("\nMake sure your cube follows the standard orientation:")
-        for face_id, color in cube.expected_centers.items():
-            print(f"- {face_id}: {color}")
-
-
-if __name__ == "__main__":
-    main()
+    print("Found a valid orientation!")
+    for face_key in ['U','F','R','B','L','D']:
+        print(face_key, "->", final_cube[face_key])
