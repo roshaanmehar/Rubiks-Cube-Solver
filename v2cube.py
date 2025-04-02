@@ -55,3 +55,21 @@ faces = {
     "left": [[None, None, None], [None, None, None], [None, None, None]],
     "back": [[None, None, None], [None, None, None], [None, None, None]],
 }
+# will implement this later but for the time being i will let it be.
+# faceColors = {
+#     "up":"yyyyyyyyy",
+#     "right":"yyyyyyyyy",
+#     "front":"yyyyyyyyy",
+#     "down":"yyyyyyyyy",
+#     "left":"yyyyyyyyy",
+#     "back":"yyyyyyyyy"
+# }
+
+def mapColorToFaces(faceName, faceString):
+    if len(faceString) != 9:
+        raise ValueError("Input string must be 9 characters only")
+    faces[faceName] = [
+        [faceName[0], faceName[1], faceName[2]],
+        [faceName[3], faceName[4], faceName[5]],
+        [faceName[6], faceName[7], faceName[8]]
+    ]
