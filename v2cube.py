@@ -75,7 +75,7 @@ def mapColorToFaces(faceName, faceString):
     ]
     
     
- 
+#mapping these colors to their respective faces
 mapColorToFaces("up", "yyyyyyyyy")
 mapColorToFaces("right", "rrrrrrrrr")
 mapColorToFaces("front", "ggggggggg")
@@ -83,4 +83,5 @@ mapColorToFaces("down", "ddddddddd")
 mapColorToFaces("left", "lllllllll")
 mapColorToFaces("back", "bbbbbbbbb")
 
-
+#so there are going to be 8 corners and 12 edges and they should be:
+print(u1)
