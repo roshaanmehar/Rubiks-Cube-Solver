@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import { createCanvas, loadImage } from 'canvas';
-import fetch from 'node:fetch';
+import fs from 'fs';
+import path from 'path';
 
 // Configuration
 const CUBE_FACES = ['white', 'red', 'green', 'yellow', 'orange', 'blue'];
@@ -133,22 +134,21 @@ async function detectGridCenters(imageBuffer) {
 }
 
 // Function to process multiple cube face images
-async function processCubeFaces(imageUrls) {
+async function processCubeFaces(imagePaths) {
   const results = [];
   const colorString = [];
   
   console.log("Processing cube faces...");
   
-  for (let i = 0; i < imageUrls.length; i++) {
-    console.log(`Processing face ${i+1}/${imageUrls.length}...`);
+  for (let i = 0; i < imagePaths.length; i++) {
+    console.log(`Processing face ${i+1}/${imagePaths.length}: ${imagePaths[i]}`);
     
     try {
-      // Fetch the image
-      const response = await fetch(imageUrls[i]);
-      const imageBuffer = await response.arrayBuffer();
+      // Read the image file
+      const imageBuffer = fs.readFileSync(imagePaths[i]);
       
       // Detect grid centers
-      const { gridCenters } = await detectGridCenters(Buffer.from(imageBuffer));
+      const { gridCenters } = await detectGridCenters(imageBuffer);
       
       // Add to results
       results.push(gridCenters);
@@ -169,12 +169,69 @@ async function processCubeFaces(imageUrls) {
   };
 }
 
-// Function to improve color detection with calibration
-function calibrateColorRanges(calibrationImage, knownColors) {
-  // This would analyze a calibration image with known colors
-  // to adjust the HSV ranges for better detection
-  console.log("Color calibration would be implemented here");
-  // For now, we'll use the predefined ranges
+// Function to improve color detection with HSV thresholding
+async function detectColorsWithHSV(imageBuffer) {
+  // Process the image
+  const { width, height, data } = await sharp(imageBuffer)
+    .resize(300, 300, { fit: 'contain' })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  
+  // Create HSV image for visualization
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.createImageData(width, height);
+  
+  // Convert RGB to HSV for each pixel
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 3;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      
+      const hsv = rgbToHsv(r, g, b);
+      
+      // Visualize HSV (hue as color)
+      const hueColor = hsvToRgb(hsv.h / 360, 1, 1);
+      
+      const outIdx = (y * width + x) * 4;
+      imageData.data[outIdx] = hueColor.r;
+      imageData.data[outIdx + 1] = hueColor.g;
+      imageData.data[outIdx + 2] = hueColor.b;
+      imageData.data[outIdx + 3] = 255;
+    }
+  }
+  
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
+// Helper function to convert HSV to RGB (for visualization)
+function hsvToRgb(h, s, v) {
+  let r, g, b;
+  
+  const i = Math.floor(h * 6);
+  const f = h * 6 - i;
+  const p = v * (1 - s);
+  const q = v * (1 - f * s);
+  const t = v * (1 - (1 - f) * s);
+  
+  switch (i % 6) {
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    case 5: r = v; g = p; b = q; break;
+  }
+  
+  return {
+    r: Math.round(r * 255),
+    g: Math.round(g * 255),
+    b: Math.round(b * 255)
+  };
 }
 
 // Function to use contour detection for better grid identification
@@ -182,34 +239,61 @@ async function detectCubeGridWithContours(imageBuffer) {
   // This would use contour detection to find the cube grid
   // more accurately than the simple grid division approach
   console.log("Contour detection would be implemented here");
-  // For now, we'll use the simple grid approach
+  
+  // For demonstration, we'll just return the processed image
+  const image = await sharp(imageBuffer)
+    .resize(300, 300, { fit: 'contain' })
+    .toBuffer();
+  
+  return image;
 }
 
 // Main function
 async function main() {
-  // Example image URLs - replace these with your actual cube face images
-  const imageUrls = [
-    'https://example.com/cube_white.jpg',
-    'https://example.com/cube_red.jpg',
-    'https://example.com/cube_green.jpg',
-    'https://example.com/cube_yellow.jpg',
-    'https://example.com/cube_orange.jpg',
-    'https://example.com/cube_blue.jpg'
-  ];
+  // Check if image paths are provided as arguments
+  const args = process.argv.slice(2);
+  let imagePaths = [];
   
-  // For testing with placeholder images
-  const placeholderUrls = Array(6).fill('https://picsum.photos/300/300');
-  
-  console.log("Starting cube face detection...");
+  if (args.length >= 6) {
+    // Use provided image paths
+    imagePaths = args.slice(0, 6);
+    console.log("Using provided image paths:", imagePaths);
+  } else {
+    console.log("No image paths provided. Please provide 6 image paths as arguments.");
+    console.log("Example: node cube-scanner.js image1.jpg image2.jpg image3.jpg image4.jpg image5.jpg image6.jpg");
+    
+    // For testing, you can uncomment this to use sample images if they exist
+    /*
+    const sampleDir = './sample_images';
+    if (fs.existsSync(sampleDir)) {
+      imagePaths = fs.readdirSync(sampleDir)
+        .filter(file => /\.(jpg|jpeg|png)$/i.test(file))
+        .map(file => path.join(sampleDir, file))
+        .slice(0, 6);
+      
+      if (imagePaths.length < 6) {
+        console.log("Not enough sample images found. Please provide 6 image paths.");
+        return;
+      }
+      
+      console.log("Using sample images:", imagePaths);
+    } else {
+      return;
+    }
+    */
+    
+    // For testing without real images, create dummy data
+    console.log("Generating dummy color string for testing...");
+    const dummyString = 'wwwwwwwwwrrrrrrrrrgggggggggyyyyyyyyyooooooooobbbbbbbbb';
+    console.log("Dummy color string:", dummyString);
+    return dummyString;
+  }
   
   // Process the images
-  const { colorString } = await processCubeFaces(placeholderUrls);
+  const { colorString } = await processCubeFaces(imagePaths);
   
   console.log("\nFinal color string:");
   console.log(colorString);
-  
-  // The expected format is:
-  // wwwwwwwwwrrrrrrrrrgggggggggyyyyyyyyyooooooooobbbbbbbbb
   
   return colorString;
 }
