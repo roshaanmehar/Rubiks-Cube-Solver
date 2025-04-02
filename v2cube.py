@@ -20,12 +20,12 @@ def mapColorToFace(faceArr, faceString):
         faceArr[i] = faceString[i]
 
 # Example inputs (use your real color strings instead of "012345678")
-mapColorToFace(u, "wwwwwwwww")
-mapColorToFace(r, "rrrrrrrrr")
-mapColorToFace(f, "fffffffff")
-mapColorToFace(d, "012345678")
-mapColorToFace(l, "012345678")
-mapColorToFace(b, "012345678")
+mapColorToFace(u, "wybgwygyw")
+mapColorToFace(r, "rrrgrwyrw")
+mapColorToFace(f, "yogwgrbbr")
+mapColorToFace(d, "orgyywwgb")
+mapColorToFace(l, "gwoooorby")
+mapColorToFace(b, "ygobbboob")
 
 # ------------------------------------------------------------
 # 2) DEFINE OPPOSITE COLORS & VALID COLORS
