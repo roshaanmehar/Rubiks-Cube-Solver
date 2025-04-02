@@ -20,9 +20,9 @@ def mapColorToFace(faceArr, faceString):
         faceArr[i] = faceString[i]
 
 # Example inputs (use your real color strings instead of "012345678")
-mapColorToFace(u, "012345678")
-mapColorToFace(r, "012345678")
-mapColorToFace(f, "012345678")
+mapColorToFace(u, "wwwwwwwww")
+mapColorToFace(r, "rrrrrrrrr")
+mapColorToFace(f, "fffffffff")
 mapColorToFace(d, "012345678")
 mapColorToFace(l, "012345678")
 mapColorToFace(b, "012345678")
