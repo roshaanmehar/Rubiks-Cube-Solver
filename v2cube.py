@@ -24,5 +24,6 @@ mapColorToFace(l, "lllllllll")
 mapColorToFace(b, "bbbbbbbbb")
 
 # 4) Test printing a specific sticker (u[1]) or the entire face array
-print(u[1])  # Should print 'y'
-print(u)     # Should print ['y', 'y', 'y', 'y', 'y', 'y', 'y', 'y', 'y']
+# 8 corners
+ulb = u[0] + l[0] + b[2]
+print(ulb)
