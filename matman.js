@@ -8,8 +8,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configuration
-const CUBE_FACES = ['white', 'red', 'green', 'yellow', 'orange', 'blue'];
+// ===== CONFIGURATION =====
+
+// Define the image paths here (modify these to match your file locations)
+const IMAGE_PATHS = [
+  path.join(__dirname, 'images', 'white.jpg'),  // Face 1 (white)
+  path.join(__dirname, 'images', 'red.jpg'),    // Face 2 (red)
+  path.join(__dirname, 'images', 'green.jpg'),  // Face 3 (green)
+  path.join(__dirname, 'images', 'yellow.jpg'), // Face 4 (yellow)
+  path.join(__dirname, 'images', 'orange.jpg'), // Face 5 (orange)
+  path.join(__dirname, 'images', 'blue.jpg')    // Face 6 (blue)
+];
+
+// Color configuration in HSV space
 const FACE_COLORS = {
   'white': { h: [0, 180], s: [0, 30], v: [80, 100], letter: 'w' },
   'red': { h: [355, 10], s: [70, 100], v: [50, 100], letter: 'r' },
@@ -31,6 +42,20 @@ if (!fs.existsSync(OUTPUT_DIR)) {
     console.error(`Failed to create output directory: ${err.message}`);
   }
 }
+
+// Create images directory if it doesn't exist
+const IMAGES_DIR = path.join(__dirname, 'images');
+if (!fs.existsSync(IMAGES_DIR)) {
+  try {
+    fs.mkdirSync(IMAGES_DIR, { recursive: true });
+    console.log(`Created images directory: ${IMAGES_DIR}`);
+    console.log(`Please place your cube face images in this directory with names: white.jpg, red.jpg, green.jpg, yellow.jpg, orange.jpg, blue.jpg`);
+  } catch (err) {
+    console.error(`Failed to create images directory: ${err.message}`);
+  }
+}
+
+// ===== HELPER FUNCTIONS =====
 
 // Helper function to convert RGB to HSV
 function rgbToHsv(r, g, b) {
@@ -153,6 +178,23 @@ function determineColor(hsv, calibratedRanges = null) {
   }
   
   return closestColor;
+}
+
+// ===== IMAGE PROCESSING FUNCTIONS =====
+
+// Function to enhance image for better color detection
+async function enhanceImage(imageBuffer) {
+  try {
+    // Apply image enhancements to improve color detection
+    return await sharp(imageBuffer)
+      .normalize() // Normalize the image (improve contrast)
+      .modulate({ brightness: 1.1, saturation: 1.2 }) // Slightly increase brightness and saturation
+      .sharpen() // Sharpen the image
+      .toBuffer();
+  } catch (error) {
+    console.error("Error enhancing image:", error.message);
+    return imageBuffer; // Return original if enhancement fails
+  }
 }
 
 // Function to detect grid centers in an image using adaptive methods
@@ -377,6 +419,12 @@ async function calibrateColorRanges(calibrationImages) {
     try {
       console.log(`Processing calibration image ${i+1}/${calibrationImages.length}`);
       
+      // Check if the file exists
+      if (!fs.existsSync(calibrationImages[i])) {
+        console.warn(`Calibration image not found: ${calibrationImages[i]}`);
+        continue;
+      }
+      
       // Read the image
       const imageBuffer = fs.readFileSync(calibrationImages[i]);
       
@@ -526,8 +574,11 @@ async function processCubeFaces(imagePaths) {
       // Read the image file
       const imageBuffer = fs.readFileSync(imagePaths[i]);
       
+      // Enhance the image for better color detection
+      const enhancedBuffer = await enhanceImage(imageBuffer);
+      
       // Detect grid centers
-      const { gridCenters, colorDistribution } = await detectGridCenters(imageBuffer, i, calibratedRanges);
+      const { gridCenters, colorDistribution } = await detectGridCenters(enhancedBuffer, i, calibratedRanges);
       
       // Add to results
       results.push(gridCenters);
@@ -654,47 +705,69 @@ async function processCubeFaces(imagePaths) {
   };
 }
 
+// Function to detect cube grid using contour detection
+async function detectCubeGridWithContours(imageBuffer) {
+  // This would implement contour detection to find the cube grid
+  // For now, we'll just return a placeholder message
+  console.log("Contour detection would identify the cube grid automatically");
+  console.log("This would handle cases where the cube is not perfectly aligned");
+  
+  // In a real implementation, this would:
+  // 1. Convert to grayscale
+  // 2. Apply Gaussian blur
+  // 3. Apply Canny edge detection
+  // 4. Find contours
+  // 5. Identify the cube grid based on contour properties
+  
+  return imageBuffer;
+}
+
+// ===== MAIN FUNCTION =====
+
 // Main function
 async function main() {
   console.log("Rubik's Cube Face Scanner");
   console.log("=========================");
   
-  // Check if image paths are provided as arguments
-  const args = process.argv.slice(2);
-  let imagePaths = [];
+  // Check if the image paths exist
+  const existingPaths = [];
+  const missingPaths = [];
   
-  if (args.length >= 6) {
-    // Use provided image paths
-    imagePaths = args.slice(0, 6);
-    console.log("Using provided image paths:", imagePaths);
-  } else {
-    console.error("Error: Please provide 6 image paths as arguments.");
-    console.log("Usage: node cube-scanner.js <image1> <image2> <image3> <image4> <image5> <image6>");
-    console.log("Example: node cube-scanner.js white.jpg red.jpg green.jpg yellow.jpg orange.jpg blue.jpg");
-    
-    // Check if we can find images in the current directory
-    try {
-      const files = fs.readdirSync(__dirname);
-      const imageFiles = files.filter(file => /\.(jpg|jpeg|png)$/i.test(file));
-      
-      if (imageFiles.length >= 6) {
-        console.log("\nFound image files in the current directory:");
-        imageFiles.slice(0, 6).forEach(file => console.log(`- ${file}`));
-        
-        console.log("\nYou can use these images with:");
-        console.log(`node cube-scanner.js ${imageFiles.slice(0, 6).join(' ')}`);
-      }
-    } catch (err) {
-      // Ignore directory reading errors
+  for (const imagePath of IMAGE_PATHS) {
+    if (fs.existsSync(imagePath)) {
+      existingPaths.push(imagePath);
+    } else {
+      missingPaths.push(imagePath);
     }
+  }
+  
+  if (missingPaths.length > 0) {
+    console.warn("Warning: The following image paths do not exist:");
+    missingPaths.forEach(path => console.warn(`- ${path}`));
     
-    // Exit with error
-    process.exit(1);
+    if (existingPaths.length === 0) {
+      console.error("Error: No valid image paths found. Please check the IMAGE_PATHS configuration.");
+      
+      // Generate a fallback color string
+      console.log("\nGenerating fallback color string...");
+      const fallbackString = 'wwwwwwwwwrrrrrrrrrgggggggggyyyyyyyyyooooooooobbbbbbbbb';
+      console.log("Fallback color string:", fallbackString);
+      
+      // Save the fallback string to a file
+      try {
+        fs.writeFileSync(path.join(OUTPUT_DIR, 'cube_colors.txt'), fallbackString);
+        console.log(`Saved fallback color string to ${path.join(OUTPUT_DIR, 'cube_colors.txt')}`);
+      } catch (err) {
+        console.error(`Failed to save fallback color string: ${err.message}`);
+      }
+      
+      return fallbackString;
+    }
   }
   
   try {
     // Process the images
-    const { colorString, isValid, corrected } = await processCubeFaces(imagePaths);
+    const { colorString, isValid, corrected } = await processCubeFaces(existingPaths);
     
     console.log("\nFinal color string:");
     console.log(colorString);
@@ -720,40 +793,16 @@ async function main() {
     const fallbackString = 'wwwwwwwwwrrrrrrrrrgggggggggyyyyyyyyyooooooooobbbbbbbbb';
     console.log("Fallback color string:", fallbackString);
     
+    // Save the fallback string to a file
+    try {
+      fs.writeFileSync(path.join(OUTPUT_DIR, 'cube_colors.txt'), fallbackString);
+      console.log(`Saved fallback color string to ${path.join(OUTPUT_DIR, 'cube_colors.txt')}`);
+    } catch (err) {
+      console.error(`Failed to save fallback color string: ${err.message}`);
+    }
+    
     return fallbackString;
   }
-}
-
-// Function to enhance image for better color detection
-async function enhanceImage(imageBuffer) {
-  try {
-    // Apply image enhancements to improve color detection
-    return await sharp(imageBuffer)
-      .normalize() // Normalize the image (improve contrast)
-      .modulate({ brightness: 1.1, saturation: 1.2 }) // Slightly increase brightness and saturation
-      .sharpen() // Sharpen the image
-      .toBuffer();
-  } catch (error) {
-    console.error("Error enhancing image:", error.message);
-    return imageBuffer; // Return original if enhancement fails
-  }
-}
-
-// Function to detect cube grid using contour detection
-async function detectCubeGridWithContours(imageBuffer) {
-  // This would implement contour detection to find the cube grid
-  // For now, we'll just return a placeholder message
-  console.log("Contour detection would identify the cube grid automatically");
-  console.log("This would handle cases where the cube is not perfectly aligned");
-  
-  // In a real implementation, this would:
-  // 1. Convert to grayscale
-  // 2. Apply Gaussian blur
-  // 3. Apply Canny edge detection
-  // 4. Find contours
-  // 5. Identify the cube grid based on contour properties
-  
-  return imageBuffer;
 }
 
 // Run the main function
