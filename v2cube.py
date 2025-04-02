@@ -1,87 +1,28 @@
-# # variables for the up layer
-u0 = u1 = u2 = u3 = u4 = u5 = u6 = u7 = u8 = None
-# up = [
-    # [u0, u1, u2],
-    # [u3, u4, u5],
-    # [u6, u7, u8]
-# ]
 
+# 1) Define arrays (lists of length 9) for each face
+u = [None] * 9  # Up
+r = [None] * 9  # Right
+f = [None] * 9  # Front
+d = [None] * 9  # Down
+l = [None] * 9  # Left
+b = [None] * 9  # Back
 
-# # variables for the front layer
-f0 = f1 = f2 = f3 = f4 = f5 = f6 = f7 = f8 = None
-# front = [
-    # [f0, f1, f2],
-    # [f3, f4, f5],
-    # [f6, f7, f8]
-# ]
-
-# # variables for the right layer
-r0 = r1 = r2 = r3 = r4 = r5 = r6 = r7 = r8 = None
-# right = [
-    # [r0, r1, r2],
-    # [r3, r4, r5],
-    # [r6, r7, r8]
-# ]
-
-# # variables for the down layer
-d0 = d1 = d2 = d3 = d4 = d5 = d6 = d7 = d8 = None
-# down = [
-    # [d0, d1, d2],
-    # [d3, d4, d5],
-    # [d6, d7, d8]
-# ]
-
-# # variables for the left layer
-l0 = l1 = l2 = l3 = l4 = l5 = l6 = l7 = l8 = None
-# left = [
-    # [l0, l1, l2],
-    # [l3, l4, l5],
-    # [l6, l7, l8]
-# ]
-
-# # variables for the back layer
-b0 = b1 = b2 = b3 = b4 = b5 = b6 = b7 = b8 = None
-# back = [
-    # [b0, b1, b2],
-    # [b3, b4, b5],
-    # [b6, b7, b8]
-# ]
-
-faces = {
-    "up": [[u0, u1, u2],[u3, u4, u5],[u6, u7, u8]],
-    "front": [[f0, f1, f2],[f3, f4, f5],[f6, f7, f8]],
-    "right": [[r0, r1, r2],[r3, r4, r5],[r6, r7, r8]],
-    "down": [[d0, d1, d2],[d3, d4, d5],[d6, d7, d8]],
-    "left": [[l0, l1, l2],[l3, l4, l5],[l6, l7, l8]],
-    "back": [[b0, b1, b2],[b3, b4, b5],[b6, b7, b8]],
-}
-# will implement this later but for the time being i will let it be.
-# faceColors = {
-#     "up":"yyyyyyyyy",
-#     "right":"yyyyyyyyy",
-#     "front":"yyyyyyyyy",
-#     "down":"yyyyyyyyy",
-#     "left":"yyyyyyyyy",
-#     "back":"yyyyyyyyy"
-# }
-
-def mapColorToFaces(faceName, faceString):
+# 2) Define a function that maps a 9-character string to the face array
+def mapColorToFace(faceArr, faceString):
     if len(faceString) != 9:
         raise ValueError("Input string must be 9 characters only")
-    faces[faceName] = [
-        [faceName[0], faceName[1], faceName[2]],
-        [faceName[3], faceName[4], faceName[5]],
-        [faceName[6], faceName[7], faceName[8]]
-    ]
-    
-    
-#mapping these colors to their respective faces
-mapColorToFaces("up", "yyyyyyyyy")
-mapColorToFaces("right", "rrrrrrrrr")
-mapColorToFaces("front", "ggggggggg")
-mapColorToFaces("down", "ddddddddd")
-mapColorToFaces("left", "lllllllll")
-mapColorToFaces("back", "bbbbbbbbb")
 
-#so there are going to be 8 corners and 12 edges and they should be:
-print(u1)
+    for i in range(9):
+        faceArr[i] = faceString[i]
+
+# 3) Map each face to the desired 9-character color string
+mapColorToFace(u, "yyyyyyyyy")
+mapColorToFace(r, "rrrrrrrrr")
+mapColorToFace(f, "ggggggggg")
+mapColorToFace(d, "ddddddddd")
+mapColorToFace(l, "lllllllll")
+mapColorToFace(b, "bbbbbbbbb")
+
+# 4) Test printing a specific sticker (u[1]) or the entire face array
+print(u[1])  # Should print 'y'
+print(u)     # Should print ['y', 'y', 'y', 'y', 'y', 'y', 'y', 'y', 'y']
