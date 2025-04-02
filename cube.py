@@ -270,14 +270,24 @@ def solve_cube_orientation(initial_face_data):
 # EXAMPLE USAGE
 if __name__ == "__main__":
 
+    # face_data = {
+    #     'front': ['B','B','B','B','G','R','Y','G','O'],
+    #     'right': ['R','G','Y','Y','R','R','O','R','W'],
+    #     'back':  ['W','W','G','G','B','O','R','O','Y'],
+    #     'left':  ['O','O','G','O','O','W','G','Y','B'],
+    #     'up':    ['G','G','R','W','W','Y','Y','R','O'],
+    #     'down':  ['W','B','B','W','Y','B','R','Y','W']
+    # }
+
     face_data = {
-        'front': ['Y','B','W','W','G','R','Y','W','W'],
-        'right': ['R','B','B','O','R','Y','B','Y','R'],
-        'back':  ['R','G','Y','B','B','G','W','Y','G'],
-        'left':  ['O','O','G','Y','O','B','W','G','W'],
-        'up':    ['B','G','O','B','W','W','G','R','O'],
-        'down':  ['B','G','R','O','Y','R','O','O','G']
-    }
+            'front': ['B','B','B','B','G','R','Y','G','O'],
+            'right': ['R','G','Y','Y','R','R','O','R','W'],
+            'back':  ['W','W','G','G','B','O','R','O','Y'],
+            'left':  ['O','O','G','O','O','W','G','Y','B'],
+            'up':    ['G','G','R','W','W','Y','Y','R','O'],
+            'down':  ['W','B','B','W','Y','B','R','Y','W']
+        }
+
 
     final_cube = solve_cube_orientation(face_data)
 
