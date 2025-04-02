@@ -1,10 +1,8 @@
 import itertools
+import json
 
 # ------------------------------------------------------------
 # 1) DEFINE SIX FACES (each a list of length 9).
-#    For simplicity, we hard-code them here via mapColorToFace.
-#    You can replace the strings "012345678" with your actual
-#    9-character color strings (e.g. "wwwwwwwww", "rrrrrrrrr", etc.)
 # ------------------------------------------------------------
 u = [None]*9  # Up
 r = [None]*9  # Right
@@ -19,7 +17,10 @@ def mapColorToFace(faceArr, faceString):
     for i in range(9):
         faceArr[i] = faceString[i]
 
-# Example inputs (use your real color strings instead of "012345678")
+# Example inputs.
+# Replace with your own 9-letter color strings that
+# match white=up, green=front, blue=back, orange=left,
+# red=right, yellow=down, etc.
 mapColorToFace(u, "wybgwygyw")
 mapColorToFace(r, "rrrgrwyrw")
 mapColorToFace(f, "yogwgrbbr")
@@ -29,13 +30,7 @@ mapColorToFace(b, "ygobbboob")
 
 # ------------------------------------------------------------
 # 2) DEFINE OPPOSITE COLORS & VALID COLORS
-#    We'll assume the only valid letters are: w,y,r,o,g,b
-#    And that these pairs are opposites:
-#      w - y
-#      r - o
-#      g - b
 # ------------------------------------------------------------
-
 opposites = {
     'w': 'y',
     'y': 'w',
@@ -44,60 +39,49 @@ opposites = {
     'g': 'b',
     'b': 'g'
 }
-
 valid_colors = set(opposites.keys())  # {'w','y','r','o','g','b'}
 
 # ------------------------------------------------------------
 # 3) CHECK COLOR COUNTS
-#    We want exactly 9 occurrences of each color for a real cube
 # ------------------------------------------------------------
 def check_color_counts(faces):
     """
-    faces: list of 6 faces, each face is a list of 9 characters
-    returns True if each color is found exactly 9 times, else False
+    Returns True if each color in {'w','y','r','o','g','b'}
+    appears exactly 9 times total among the 54 stickers,
+    else returns False.
     """
     all_stickers = []
     for face in faces:
-        all_stickers.extend(face)  # gather all 54 facelets
+        all_stickers.extend(face)
 
-    # Quick check: must have exactly 54 facelets
+    # Must have exactly 54 facelets
     if len(all_stickers) != 54:
         return False
 
     # Must only contain letters from valid_colors
-    for c in all_stickers:
-        if c not in valid_colors:
-            return False
+    if any(c not in valid_colors for c in all_stickers):
+        return False
 
-    # Count each color
-    for color in valid_colors:
-        if all_stickers.count(color) != 9:
+    # Check that each color appears exactly 9 times
+    for c in valid_colors:
+        if all_stickers.count(c) != 9:
             return False
 
     return True
 
 # ------------------------------------------------------------
-# 4) ROTATION LOGIC
-#    We'll need to rotate each face 0, 90, 180, 270 degrees.
-#    This helper function returns a new face (9-list) after
-#    rotating the original face 'times' * 90 degrees clockwise.
+# 4) ROTATION LOGIC (rotate each face 0,90,180,270 degrees).
 # ------------------------------------------------------------
 def rotate_face_90(face):
     """
-    Face is a list of 9 items indexed like:
-       0 1 2
-       3 4 5
-       6 7 8
-    A 90-degree clockwise rotation re-maps:
-       new[0] = old[6]
-       new[1] = old[3]
-       new[2] = old[0]
-       new[3] = old[7]
-       new[4] = old[4]
-       new[5] = old[1]
-       new[6] = old[8]
-       new[7] = old[5]
-       new[8] = old[2]
+    3x3 face layout:
+       indices:   0 1 2
+                  3 4 5
+                  6 7 8
+    90° clockwise re-maps:
+       new[0] = old[6], new[1] = old[3], new[2] = old[0],
+       new[3] = old[7], new[4] = old[4], new[5] = old[1],
+       new[6] = old[8], new[7] = old[5], new[8] = old[2].
     """
     return [
         face[6], face[3], face[0],
@@ -107,8 +91,7 @@ def rotate_face_90(face):
 
 def rotate_face(face, times):
     """
-    Rotate face by times * 90 degrees (clockwise).
-    Returns a new list of length 9.
+    Rotate a face by `times * 90 degrees` clockwise.
     """
     result = face[:]
     for _ in range(times):
@@ -116,95 +99,108 @@ def rotate_face(face, times):
     return result
 
 # ------------------------------------------------------------
-# 5) CHECK PIECES FOR INVALIDITY
-#    We define all corners & edges in terms of face indices.
-#    We check each corner or edge to ensure:
-#       - no repeated colors
-#       - no opposite color pair
+# 5) PIECE VALIDATION: corners & edges
 # ------------------------------------------------------------
-def is_valid_piece(piece_str):
+def check_piece_validity(piece_str):
     """
-    piece_str: e.g. "wrb" for a corner or "yb" for an edge.
-               Must have no repeated colors,
-               and must not contain a pair of opposites.
+    Return (True, "") if valid;
+    or (False, explanation) if invalid.
     """
-    # No duplicates
+    # 1) Check no repeated colors
     if len(set(piece_str)) != len(piece_str):
-        return False
+        return (False, f"repeated color in piece '{piece_str}'")
 
-    # Check no pair of opposites
+    # 2) Check no pair of opposites
     for c in piece_str:
         for d in piece_str:
             if c != d and opposites.get(c) == d:
-                return False
+                return (False, f"opposite colors '{c}' and '{d}' in piece '{piece_str}'")
 
-    return True
+    return (True, "")
 
 def is_valid_arrangement(u_face, r_face, f_face, d_face, l_face, b_face):
     """
-    Given 6 faces in a specific orientation (each a list of length 9),
-    check all corners & edges.
-    Returns True if all corners and edges pass the piece checks.
+    Checks all corners & edges in the current orientation.
+    Returns (True, None) if valid, or (False, debug_message) if invalid.
     """
 
     # 8 corners
     corners = [
-        u_face[0] + l_face[0] + b_face[2],  # ulb
-        u_face[2] + r_face[2] + b_face[0],  # urb
-        u_face[6] + l_face[2] + f_face[0],  # ulf
-        u_face[8] + r_face[0] + f_face[2],  # urf
-        d_face[0] + l_face[8] + f_face[6],  # dlf
-        d_face[2] + r_face[6] + f_face[8],  # drf
-        d_face[6] + l_face[7] + b_face[8],  # dlb
-        d_face[8] + r_face[8] + b_face[6],  # drb
+        (u_face[0] + l_face[0] + b_face[2], "ulb corner"),
+        (u_face[2] + r_face[2] + b_face[0], "urb corner"),
+        (u_face[6] + l_face[2] + f_face[0], "ulf corner"),
+        (u_face[8] + r_face[0] + f_face[2], "urf corner"),
+        (d_face[0] + l_face[8] + f_face[6], "dlf corner"),
+        (d_face[2] + r_face[6] + f_face[8], "drf corner"),
+        (d_face[6] + l_face[7] + b_face[8], "dlb corner"),
+        (d_face[8] + r_face[8] + b_face[6], "drb corner"),
     ]
 
     # 12 edges
     edges = [
-        u_face[1] + b_face[1],  # ub
-        u_face[5] + r_face[1],  # ur
-        u_face[7] + f_face[1],  # uf
-        u_face[3] + l_face[1],  # ul
+        (u_face[1] + b_face[1], "ub edge"),
+        (u_face[5] + r_face[1], "ur edge"),
+        (u_face[7] + f_face[1], "uf edge"),
+        (u_face[3] + l_face[1], "ul edge"),
 
-        l_face[5] + f_face[3],  # lf
-        r_face[3] + f_face[5],  # rf
-        r_face[5] + b_face[3],  # rb
-        l_face[3] + b_face[5],  # lb
+        (l_face[5] + f_face[3], "lf edge"),
+        (r_face[3] + f_face[5], "rf edge"),
+        (r_face[5] + b_face[3], "rb edge"),
+        (l_face[3] + b_face[5], "lb edge"),
 
-        d_face[1] + f_face[7],  # df
-        d_face[5] + r_face[7],  # dr
-        d_face[7] + b_face[7],  # db
-        d_face[3] + l_face[7],  # dl
+        (d_face[1] + f_face[7], "df edge"),
+        (d_face[5] + r_face[7], "dr edge"),
+        (d_face[7] + b_face[7], "db edge"),
+        (d_face[3] + l_face[7], "dl edge"),
     ]
 
     # Check corners
-    for c in corners:
-        if not is_valid_piece(c):
-            return False
+    for piece_str, label in corners:
+        ok, reason = check_piece_validity(piece_str)
+        if not ok:
+            return (False, f"Invalid {label}: {reason}")
 
     # Check edges
-    for e in edges:
-        if not is_valid_piece(e):
-            return False
+    for piece_str, label in edges:
+        ok, reason = check_piece_validity(piece_str)
+        if not ok:
+            return (False, f"Invalid {label}: {reason}")
 
-    return True
+    return (True, None)
 
 # ------------------------------------------------------------
-# 6) BRUTE-FORCE OVER ALL 4^6 ORIENTATIONS
-#    For each face, try 0, 90, 180, 270 rotation. If a valid
-#    arrangement is found, output the 54-character result in
-#    the order U, F, R, D, L, B (each face indices 0..8).
+# 6) BRUTE FORCE OVER 4^6 FACE ROTATIONS
 # ------------------------------------------------------------
 def find_valid_orientation(u, r, f, d, l, b):
-    # First, check color counts just once; orientation doesn't change counts
+    """
+    1) Check color counts first. If invalid, return None immediately.
+    2) Otherwise, iterate over all 4^6 face-rotations.
+    3) Stop when a valid arrangement is found.
+    4) Save a debug log of every orientation attempt (valid or invalid)
+       to 'debug_log.json', including the reason for invalid states.
+    """
+
+    # Check color counts
     if not check_color_counts([u, r, f, d, l, b]):
         print("Color counts are invalid (each color must appear exactly 9 times).")
         return None
 
-    all_rotations = [0,1,2,3]  # 4 possible orientations
+    # We'll store info about all 4096 states here
+    all_states_debug = []
 
-    for u_rot, r_rot, f_rot, d_rot, l_rot, b_rot in itertools.product(all_rotations, repeat=6):
-        # Rotate each face
+    # We'll keep track of how many combos we tried
+    count_checked = 0
+
+    # All possible rotations for each face
+    all_rotations = [0,1,2,3]
+
+    # Generate all combinations of rotations (4^6 = 4096)
+    for index, (u_rot, r_rot, f_rot, d_rot, l_rot, b_rot) in enumerate(
+        itertools.product(all_rotations, repeat=6)
+    ):
+        count_checked += 1
+
+        # Rotate each face accordingly
         u_ = rotate_face(u, u_rot)
         r_ = rotate_face(r, r_rot)
         f_ = rotate_face(f, f_rot)
@@ -212,11 +208,25 @@ def find_valid_orientation(u, r, f, d, l, b):
         l_ = rotate_face(l, l_rot)
         b_ = rotate_face(b, b_rot)
 
-        # Check corners & edges for this orientation
-        if is_valid_arrangement(u_, r_, f_, d_, l_, b_):
-            # If valid, build the final string in the desired order:
-            #  uuuuuuuuu fffffffff rrrrrrrrr ddddddddd lllllllll bbbbbbbbb
-            result = (
+        # Check arrangement
+        valid, reason = is_valid_arrangement(u_, r_, f_, d_, l_, b_)
+
+        # Build a record of this attempt
+        attempt_record = {
+            "combination_index": index,
+            "rotations": {
+                "u_rot": u_rot,
+                "r_rot": r_rot,
+                "f_rot": f_rot,
+                "d_rot": d_rot,
+                "l_rot": l_rot,
+                "b_rot": b_rot
+            },
+            "valid": valid,
+        }
+        if valid:
+            # If valid, build the final string as requested
+            final_str = (
                 "".join(u_) +
                 "".join(f_) +
                 "".join(r_) +
@@ -224,15 +234,38 @@ def find_valid_orientation(u, r, f, d, l, b):
                 "".join(l_) +
                 "".join(b_)
             )
-            return result
+            attempt_record["cube_state"] = final_str
+            attempt_record["reason"] = "N/A (valid orientation)"
 
-    # If we exhaust all possibilities without finding a valid orientation
+            # Add record to our list
+            all_states_debug.append(attempt_record)
+
+            # Save the entire debug log to a JSON file
+            with open("debug_log.json", "w") as f_out:
+                json.dump(all_states_debug, f_out, indent=2)
+
+            # Print how many combos we checked
+            print(f"Solution found after checking {count_checked} combinations.")
+            return final_str
+        else:
+            # If invalid, store reason
+            attempt_record["reason"] = reason
+            # Add to the debug info
+            all_states_debug.append(attempt_record)
+
+    # If we exhaust all 4096 combinations with no success,
+    # save the debug log as well
+    with open("debug_log.json", "w") as f_out:
+        json.dump(all_states_debug, f_out, indent=2)
+
+    print(f"Tried all {count_checked} combinations, no valid orientation found.")
     return None
 
 # ------------------------------------------------------------
-# 7) ACTUALLY RUN THE SEARCH AND PRINT RESULT
+# 7) RUN THE SEARCH
 # ------------------------------------------------------------
 valid_state_str = find_valid_orientation(u, r, f, d, l, b)
+
 if valid_state_str is None:
     print("No valid orientation found.")
 else:
