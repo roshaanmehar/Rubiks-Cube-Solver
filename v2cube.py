@@ -56,15 +56,20 @@ def check_color_counts(faces):
 
     # Must have exactly 54 facelets
     if len(all_stickers) != 54:
+        print(f"Invalid number of facelets: {len(all_stickers)}")
         return False
 
     # Must only contain letters from valid_colors
-    if any(c not in valid_colors for c in all_stickers):
+    invalid_colors = [c for c in all_stickers if c not in valid_colors]
+    if invalid_colors:
+        print(f"Invalid colors found: {set(invalid_colors)}")
         return False
 
     # Check that each color appears exactly 9 times
     for c in valid_colors:
-        if all_stickers.count(c) != 9:
+        count = all_stickers.count(c)
+        if count != 9:
+            print(f"Color '{c}' appears {count} times instead of 9")
             return False
 
     return True
@@ -132,7 +137,7 @@ def is_valid_arrangement(u_face, r_face, f_face, d_face, l_face, b_face):
         (u_face[8] + r_face[0] + f_face[2], "urf corner"),
         (d_face[0] + l_face[8] + f_face[6], "dlf corner"),
         (d_face[2] + r_face[6] + f_face[8], "drf corner"),
-        (d_face[6] + l_face[7] + b_face[8], "dlb corner"),
+        (d_face[6] + l_face[6] + b_face[8], "dlb corner"),  # Fixed: l_face[7] -> l_face[6]
         (d_face[8] + r_face[8] + b_face[6], "drb corner"),
     ]
 
@@ -151,8 +156,16 @@ def is_valid_arrangement(u_face, r_face, f_face, d_face, l_face, b_face):
         (d_face[1] + f_face[7], "df edge"),
         (d_face[5] + r_face[7], "dr edge"),
         (d_face[7] + b_face[7], "db edge"),
-        (d_face[3] + l_face[7], "dl edge"),
+        (d_face[3] + l_face[6], "dl edge"),  # Fixed: l_face[7] -> l_face[6]
     ]
+
+    # Check centers
+    centers = [u_face[4], r_face[4], f_face[4], d_face[4], l_face[4], b_face[4]]
+    expected_centers = ['w', 'r', 'g', 'y', 'o', 'b']
+    
+    for i, (actual, expected) in enumerate(zip(centers, expected_centers)):
+        if actual != expected:
+            return (False, f"Center {i} is {actual}, expected {expected}")
 
     # Check corners
     for piece_str, label in corners:
@@ -264,6 +277,23 @@ def find_valid_orientation(u, r, f, d, l, b):
 # ------------------------------------------------------------
 # 7) RUN THE SEARCH
 # ------------------------------------------------------------
+# Print the current state for debugging
+print("Current cube state:")
+print(f"Up face: {u}")
+print(f"Right face: {r}")
+print(f"Front face: {f}")
+print(f"Down face: {d}")
+print(f"Left face: {l}")
+print(f"Back face: {b}")
+
+# Check if centers are correct
+centers = [u[4], r[4], f[4], d[4], l[4], b[4]]
+expected_centers = ['w', 'r', 'g', 'y', 'o', 'b']
+print("\nCenters check:")
+for i, (actual, expected) in enumerate(zip(centers, expected_centers)):
+    print(f"Face {i}: Expected {expected}, Got {actual}")
+
+# Run the search
 valid_state_str = find_valid_orientation(u, r, f, d, l, b)
 
 if valid_state_str is None:
