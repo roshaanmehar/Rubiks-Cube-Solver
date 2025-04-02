@@ -16,14 +16,29 @@ def mapColorToFace(faceArr, faceString):
         faceArr[i] = faceString[i]
 
 # 3) Map each face to the desired 9-character color string
-mapColorToFace(u, "yyyyyyyyy")
+mapColorToFace(u, "wwwwwwwww")
 mapColorToFace(r, "rrrrrrrrr")
 mapColorToFace(f, "ggggggggg")
-mapColorToFace(d, "ddddddddd")
+mapColorToFace(d, "yyyyyyyyy")
 mapColorToFace(l, "lllllllll")
 mapColorToFace(b, "bbbbbbbbb")
 
 # 4) Test printing a specific sticker (u[1]) or the entire face array
 # 8 corners
 ulb = u[0] + l[0] + b[2]
+urb = u[2] + r[2] + b[0]
+ulf = u[6] + l[2] + f[0]
+urf = u[8] + r[0] + f[2]
+dlf = d[0] + l[8] + f[6]
+drf = d[2] + r[6] + f[8]
+dlb = d[6] + l[7] + b[8]
+drb = d[8] + r[8] + d[6]
+
 print(ulb)
+print(urb)
+print(ulf)
+print(urf)
+print(dlf)
+print(drf)
+print(dlb)
+print(drb)
