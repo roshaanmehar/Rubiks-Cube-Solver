@@ -21,12 +21,22 @@ def mapColorToFace(faceArr, faceString):
 # Replace with your own 9-letter color strings that
 # match white=up, green=front, blue=back, orange=left,
 # red=right, yellow=down, etc.
-mapColorToFace(u, "ggwywywyb")
-mapColorToFace(r, "rwwrrrrgy")
-mapColorToFace(f, "rbbrgwgoy")
-mapColorToFace(d, "bgwwyygro")
-mapColorToFace(l, "ybroooowg")
-mapColorToFace(b, "boobbbogy")
+# --- Example 1: Potentially solvable ---
+# mapColorToFace(u, "wywywyywy")
+# mapColorToFace(r, "rrrrrrrob")
+# mapColorToFace(f, "ggogggbgg")
+# mapColorToFace(d, "wwywywyyw")
+# mapColorToFace(l, "oogooooro")
+# mapColorToFace(b, "bbbbbbgbr")
+
+# --- Example 2: Solved State (should have 1 valid orientation: rotations 0,0,0,0,0,0) ---
+mapColorToFace(u, "wywywyywy")
+mapColorToFace(r, "rrrrrrrob")
+mapColorToFace(f, "ggogggbgg")
+mapColorToFace(d, "wwywywyyw")
+mapColorToFace(l, "oroooogoo")
+mapColorToFace(b, "bbbbbbgbr")
+
 
 # ------------------------------------------------------------
 # 2) DEFINE OPPOSITE COLORS & VALID COLORS
@@ -80,13 +90,13 @@ def check_color_counts(faces):
 def rotate_face_90(face):
     """
     3x3 face layout:
-       indices:   0 1 2
-                  3 4 5
-                  6 7 8
+        indices:   0 1 2
+                   3 4 5
+                   6 7 8
     90° clockwise re-maps:
-       new[0] = old[6], new[1] = old[3], new[2] = old[0],
-       new[3] = old[7], new[4] = old[4], new[5] = old[1],
-       new[6] = old[8], new[7] = old[5], new[8] = old[2].
+        new[0] = old[6], new[1] = old[3], new[2] = old[0],
+        new[3] = old[7], new[4] = old[4], new[5] = old[1],
+        new[6] = old[8], new[7] = old[5], new[8] = old[2].
     """
     return [
         face[6], face[3], face[0],
@@ -99,7 +109,7 @@ def rotate_face(face, times):
     Rotate a face by `times * 90 degrees` clockwise.
     """
     result = face[:]
-    for _ in range(times):
+    for _ in range(times % 4): # Use modulo 4 to handle rotations >= 4
         result = rotate_face_90(result)
     return result
 
@@ -125,47 +135,51 @@ def check_piece_validity(piece_str):
 
 def is_valid_arrangement(u_face, r_face, f_face, d_face, l_face, b_face):
     """
-    Checks all corners & edges in the current orientation.
+    Checks centers, all corners & edges in the current orientation.
     Returns (True, None) if valid, or (False, debug_message) if invalid.
     """
 
-    # 8 corners
-    corners = [
-        (u_face[0] + l_face[0] + b_face[2], "ulb corner"),
-        (u_face[2] + r_face[2] + b_face[0], "urb corner"),
-        (u_face[6] + l_face[2] + f_face[0], "ulf corner"),
-        (u_face[8] + r_face[0] + f_face[2], "urf corner"),
-        (d_face[0] + l_face[8] + f_face[6], "dlf corner"),
-        (d_face[2] + r_face[6] + f_face[8], "drf corner"),
-        (d_face[6] + l_face[6] + b_face[8], "dlb corner"),  # Fixed: l_face[7] -> l_face[6]
-        (d_face[8] + r_face[8] + b_face[6], "drb corner"),
-    ]
-
-    # 12 edges
-    edges = [
-        (u_face[1] + b_face[1], "ub edge"),
-        (u_face[5] + r_face[1], "ur edge"),
-        (u_face[7] + f_face[1], "uf edge"),
-        (u_face[3] + l_face[1], "ul edge"),
-
-        (l_face[5] + f_face[3], "lf edge"),
-        (r_face[3] + f_face[5], "rf edge"),
-        (r_face[5] + b_face[3], "rb edge"),
-        (l_face[3] + b_face[5], "lb edge"),
-
-        (d_face[1] + f_face[7], "df edge"),
-        (d_face[5] + r_face[7], "dr edge"),
-        (d_face[7] + b_face[7], "db edge"),
-        (d_face[3] + l_face[6], "dl edge"),  # Fixed: l_face[7] -> l_face[6]
-    ]
-
-    # Check centers
+    # Check centers first - they must match the standard orientation
     centers = [u_face[4], r_face[4], f_face[4], d_face[4], l_face[4], b_face[4]]
-    expected_centers = ['w', 'r', 'g', 'y', 'o', 'b']
-    
+    expected_centers = ['w', 'r', 'g', 'y', 'o', 'b'] # U R F D L B standard centers
+
     for i, (actual, expected) in enumerate(zip(centers, expected_centers)):
         if actual != expected:
-            return (False, f"Center {i} is {actual}, expected {expected}")
+            # Map index to face for clearer message
+            face_map = {0: "Up", 1: "Right", 2: "Front", 3: "Down", 4: "Left", 5: "Back"}
+            return (False, f"Center {face_map[i]} is '{actual}', expected '{expected}'")
+
+
+    # 8 corners (indices relative to the standard URFDLB orientation)
+    corners = [
+        (u_face[0] + l_face[2] + b_face[0], "ulb corner"), # Corrected: u[0], l[2], b[0]
+        (u_face[2] + r_face[2] + b_face[2], "urb corner"), # Corrected: u[2], r[2], b[2]
+        (u_face[6] + l_face[0] + f_face[0], "ulf corner"), # Corrected: u[6], l[0], f[0]
+        (u_face[8] + r_face[0] + f_face[2], "urf corner"), # Corrected: u[8], r[0], f[2]
+        (d_face[0] + l_face[6] + f_face[6], "dlf corner"), # Corrected: d[0], l[6], f[6]
+        (d_face[2] + r_face[6] + f_face[8], "drf corner"), # Corrected: d[2], r[6], f[8]
+        (d_face[6] + l_face[8] + b_face[8], "dlb corner"), # Corrected: d[6], l[8], b[8]
+        (d_face[8] + r_face[8] + b_face[6], "drb corner"), # Corrected: d[8], r[8], b[6]
+    ]
+
+    # 12 edges (indices relative to the standard URFDLB orientation)
+    edges = [
+        (u_face[1] + b_face[1], "ub edge"), # Corrected: u[1], b[1]
+        (u_face[5] + r_face[1], "ur edge"), # Corrected: u[5], r[1]
+        (u_face[7] + f_face[1], "uf edge"), # Corrected: u[7], f[1]
+        (u_face[3] + l_face[1], "ul edge"), # Corrected: u[3], l[1]
+
+        (l_face[5] + f_face[3], "lf edge"), # Corrected: l[5], f[3]
+        (r_face[3] + f_face[5], "rf edge"), # Corrected: r[3], f[5]
+        (r_face[5] + b_face[5], "rb edge"), # Corrected: r[5], b[5]
+        (l_face[3] + b_face[3], "lb edge"), # Corrected: l[3], b[3]
+
+        (d_face[1] + f_face[7], "df edge"), # Corrected: d[1], f[7]
+        (d_face[5] + r_face[7], "dr edge"), # Corrected: d[5], r[7]
+        (d_face[7] + b_face[7], "db edge"), # Corrected: d[7], b[7]
+        (d_face[3] + l_face[7], "dl edge"), # Corrected: d[3], l[7]
+    ]
+
 
     # Check corners
     for piece_str, label in corners:
@@ -179,33 +193,37 @@ def is_valid_arrangement(u_face, r_face, f_face, d_face, l_face, b_face):
         if not ok:
             return (False, f"Invalid {label}: {reason}")
 
+    # If all checks pass
     return (True, None)
 
 # ------------------------------------------------------------
 # 6) BRUTE FORCE OVER 4^6 FACE ROTATIONS
 # ------------------------------------------------------------
-def find_valid_orientation(u, r, f, d, l, b):
+def find_valid_orientations(u, r, f, d, l, b): # Renamed function for clarity
     """
-    1) Check color counts first. If invalid, return None immediately.
+    1) Check color counts first. If invalid, return empty list immediately.
     2) Otherwise, iterate over all 4^6 face-rotations.
-    3) Stop when a valid arrangement is found.
+    3) Collect all valid arrangements found.
     4) Save a debug log of every orientation attempt (valid or invalid)
        to 'debug_log.json', including the reason for invalid states.
+    5) Return a list of all valid cube state strings found.
     """
 
     # Check color counts
     if not check_color_counts([u, r, f, d, l, b]):
         print("Color counts are invalid (each color must appear exactly 9 times).")
-        return None
+        return [] # Return empty list if counts are wrong
 
     # We'll store info about all 4096 states here
     all_states_debug = []
+    # List to store all valid state strings
+    valid_solutions = []
 
     # We'll keep track of how many combos we tried
     count_checked = 0
 
-    # All possible rotations for each face
-    all_rotations = [0,1,2,3]
+    # All possible rotations for each face (0=0°, 1=90°, 2=180°, 3=270° clockwise)
+    all_rotations = [0, 1, 2, 3]
 
     # Generate all combinations of rotations (4^6 = 4096)
     for index, (u_rot, r_rot, f_rot, d_rot, l_rot, b_rot) in enumerate(
@@ -235,75 +253,86 @@ def find_valid_orientation(u, r, f, d, l, b):
                 "l_rot": l_rot,
                 "b_rot": b_rot
             },
+            "faces_tested": { # Added for better debugging
+                "u": "".join(u_),
+                "r": "".join(r_),
+                "f": "".join(f_),
+                "d": "".join(d_),
+                "l": "".join(l_),
+                "b": "".join(b_)
+            },
             "valid": valid,
         }
+
         if valid:
             # If valid, build the final string as requested
+            # Standard URFDLB output string format
             final_str = (
                 "".join(u_) +
-                "".join(f_) +
-                "".join(r_) +
+                "".join(r_) + # R face next
+                "".join(f_) + # F face next
                 "".join(d_) +
                 "".join(l_) +
                 "".join(b_)
             )
             attempt_record["cube_state"] = final_str
             attempt_record["reason"] = "N/A (valid orientation)"
-
-            # Add record to our list
-            all_states_debug.append(attempt_record)
-
-            # Save the entire debug log to a JSON file
-            with open("debug_log.json", "w") as f_out:
-                json.dump(all_states_debug, f_out, indent=2)
-
-            # Print how many combos we checked
-            print(f"Solution found after checking {count_checked} combinations.")
-            return final_str
+            valid_solutions.append(final_str) # Add the valid string to our list
         else:
             # If invalid, store reason
             attempt_record["reason"] = reason
-            # Add to the debug info
-            all_states_debug.append(attempt_record)
 
-    # If we exhaust all 4096 combinations with no success,
-    # save the debug log as well
-    with open("debug_log.json", "w") as f_out:
-        json.dump(all_states_debug, f_out, indent=2)
+        # Add record to our list regardless of validity for the log
+        all_states_debug.append(attempt_record)
 
-    print(f"Tried all {count_checked} combinations, no valid orientation found.")
-    return None
+    # After checking all combinations, save the entire debug log
+    try:
+        with open("debug_log.json", "w") as f_out:
+            json.dump(all_states_debug, f_out, indent=2)
+        print(f"\nChecked all {count_checked} combinations.")
+        print(f"Debug log saved to debug_log.json")
+    except IOError as e:
+        print(f"Error saving debug log: {e}")
+
+
+    # Return the list of all found valid solutions
+    return valid_solutions
 
 # ------------------------------------------------------------
 # 7) RUN THE SEARCH
 # ------------------------------------------------------------
-# Print the current state for debugging
-print("Current cube state:")
-print(f"Up face: {u}")
-print(f"Right face: {r}")
-print(f"Front face: {f}")
-print(f"Down face: {d}")
-print(f"Left face: {l}")
-print(f"Back face: {b}")
+# Print the initial input state for debugging
+print("Initial Input cube state:")
+print(f"Up face   (u): {''.join(u)}")
+print(f"Right face(r): {''.join(r)}")
+print(f"Front face(f): {''.join(f)}")
+print(f"Down face (d): {''.join(d)}")
+print(f"Left face (l): {''.join(l)}")
+print(f"Back face (b): {''.join(b)}")
 
-# Check if centers are correct
-centers = [u[4], r[4], f[4], d[4], l[4], b[4]]
-expected_centers = ['w', 'r', 'g', 'y', 'o', 'b']
-print("\nCenters check:")
-for i, (actual, expected) in enumerate(zip(centers, expected_centers)):
-    print(f"Face {i}: Expected {expected}, Got {actual}")
+# Print initial centers for quick check
+initial_centers = [u[4], r[4], f[4], d[4], l[4], b[4]]
+print(f"\nInitial center colors (U,R,F,D,L,B): {initial_centers}")
+print("Expected standard center colors: ['w', 'r', 'g', 'y', 'o', 'b']")
+
 
 # Run the search
-valid_state_str = find_valid_orientation(u, r, f, d, l, b)
+valid_state_strings = find_valid_orientations(u, r, f, d, l, b) # Call the renamed function
 
-if valid_state_str is None:
-    print("No valid orientation found.")
+# --- Output Results ---
+if not valid_state_strings:
+    print("\nNo valid orientation found that matches standard center colors and piece rules.")
 else:
-    print("Found valid orientation:")
-    print(valid_state_str)
-    
-    
-    
-    
-    
-    
+    print(f"\nFound {len(valid_state_strings)} valid orientation(s):")
+    for i, state_str in enumerate(valid_state_strings):
+        print(f"Solution {i+1}: {state_str}")
+
+        # Optionally print the faces for the first solution found
+        if i == 0:
+             print("\nFaces for the first valid solution:")
+             print(f"  Up   : {state_str[0:9]}")
+             print(f"  Right: {state_str[9:18]}")
+             print(f"  Front: {state_str[18:27]}")
+             print(f"  Down : {state_str[27:36]}")
+             print(f"  Left : {state_str[36:45]}")
+             print(f"  Back : {state_str[45:54]}")

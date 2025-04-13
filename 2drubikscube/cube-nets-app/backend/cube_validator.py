@@ -18,171 +18,218 @@ COLOR_TO_FACE_CHAR = {
     'b': 'B',  # Blue -> Back
 }
 
-# Expected centers in standard orientation
-EXPECTED_CENTERS = {'U': 'w', 'R': 'r', 'F': 'g', 'D': 'y', 'L': 'o', 'B': 'b'}
-FACE_ORDER_KOCIEMBA = ['U', 'R', 'F', 'D', 'L', 'B']  # Standard URFDLB order
-
 def check_color_counts(faces):
     """
-    Checks if each color appears exactly 9 times.
+    Returns True if each color in {'w','y','r','o','g','b'}
+    appears exactly 9 times total among the 54 stickers,
+    else returns False.
     """
-    all_stickers = list(itertools.chain.from_iterable(faces))
-    
+    all_stickers = []
+    for face in faces:
+        all_stickers.extend(face)
+
+    # Must have exactly 54 facelets
     if len(all_stickers) != 54:
-        return False, f"Invalid number of stickers: {len(all_stickers)} (expected 54)"
-    
+        return False, f"Invalid number of facelets: {len(all_stickers)}"
+
+    # Must only contain letters from valid_colors
     invalid_colors = [c for c in all_stickers if c not in valid_colors]
     if invalid_colors:
         return False, f"Invalid colors found: {set(invalid_colors)}"
-    
+
+    # Check that each color appears exactly 9 times
     for c in valid_colors:
         count = all_stickers.count(c)
         if count != 9:
-            return False, f"Color '{c}' appears {count} times (expected 9)"
-    
+            return False, f"Color '{c}' appears {count} times instead of 9"
+
     return True, ""
 
-def rotate_face_90(face_list):
+def rotate_face_90(face):
     """
-    Rotates a 9-element face list 90 degrees clockwise.
+    3x3 face layout:
+        indices:   0 1 2
+                   3 4 5
+                   6 7 8
+    90° clockwise re-maps:
+        new[0] = old[6], new[1] = old[3], new[2] = old[0],
+        new[3] = old[7], new[4] = old[4], new[5] = old[1],
+        new[6] = old[8], new[7] = old[5], new[8] = old[2].
     """
     return [
-        face_list[6], face_list[3], face_list[0],
-        face_list[7], face_list[4], face_list[1],
-        face_list[8], face_list[5], face_list[2]
+        face[6], face[3], face[0],
+        face[7], face[4], face[1],
+        face[8], face[5], face[2]
     ]
 
-def rotate_face(face_list, times):
+def rotate_face(face, times):
     """
-    Rotates a face list `times` * 90 degrees clockwise.
+    Rotate a face by `times * 90 degrees` clockwise.
     """
-    result = face_list[:]
-    for _ in range(times % 4):  # Ensure times is 0, 1, 2, or 3
+    result = face[:]
+    for _ in range(times % 4):  # Use modulo 4 to handle rotations >= 4
         result = rotate_face_90(result)
     return result
 
 def check_piece_validity(piece_str):
     """
-    Checks if an edge (2 chars) or corner (3 chars) string is valid.
+    Return (True, "") if valid;
+    or (False, explanation) if invalid.
     """
+    # 1) Check no repeated colors
     if len(set(piece_str)) != len(piece_str):
-        return False, f"repeated color in piece '{piece_str}'"
-    
-    for c1 in piece_str:
-        for c2 in piece_str:
-            if c1 != c2 and opposites.get(c1) == c2:
-                return False, f"opposite colors '{c1}'/'{c2}' in piece '{piece_str}'"
-    
-    return True, ""
+        return (False, f"repeated color in piece '{piece_str}'")
 
-def is_valid_arrangement(u, r, f, d, l, b):
+    # 2) Check no pair of opposites
+    for c in piece_str:
+        for d in piece_str:
+            if c != d and opposites.get(c) == d:
+                return (False, f"opposite colors '{c}' and '{d}' in piece '{piece_str}'")
+
+    return (True, "")
+
+def is_valid_arrangement(u_face, r_face, f_face, d_face, l_face, b_face):
     """
-    Checks centers, edges, and corners for a given orientation of face lists.
-    Assumes standard color scheme for centers (U=w, R=r, etc.).
-    Returns (True, "") if valid, or (False, reason) if invalid.
+    Checks centers, all corners & edges in the current orientation.
+    Returns (True, None) if valid, or (False, debug_message) if invalid.
     """
-    faces = {'U': u, 'R': r, 'F': f, 'D': d, 'L': l, 'B': b}
-    
-    # 1. Check Center Pieces
-    for face_char, expected_color in EXPECTED_CENTERS.items():
-        if faces[face_char][4] != expected_color:
-            return False, f"Center piece mismatch: {face_char} center is '{faces[face_char][4]}', expected '{expected_color}'"
-    
-    # 2. Define and Check Corners (using standard URFDLB notation indices)
+
+    # Check centers first - they must match the standard orientation
+    centers = [u_face[4], r_face[4], f_face[4], d_face[4], l_face[4], b_face[4]]
+    expected_centers = ['w', 'r', 'g', 'y', 'o', 'b']  # U R F D L B standard centers
+
+    for i, (actual, expected) in enumerate(zip(centers, expected_centers)):
+        if actual != expected:
+            # Map index to face for clearer message
+            face_map = {0: "Up", 1: "Right", 2: "Front", 3: "Down", 4: "Left", 5: "Back"}
+            return (False, f"Center {face_map[i]} is '{actual}', expected '{expected}'")
+
+    # 8 corners (indices relative to the standard URFDLB orientation)
     corners = [
-        (u[0] + l[0] + b[2], "ULB"),
-        (u[2] + b[0] + r[2], "UBR"),
-        (u[6] + f[0] + l[2], "UFL"),
-        (u[8] + r[0] + f[2], "URF"),
-        (d[0] + l[8] + f[6], "DLF"),
-        (d[2] + f[8] + r[6], "DFR"),
-        (d[6] + b[8] + l[6], "DBL"),
-        (d[8] + r[8] + b[6], "DRB"),
+        (u_face[0] + l_face[2] + b_face[0], "ulb corner"),  # Corrected: u[0], l[2], b[0]
+        (u_face[2] + r_face[2] + b_face[2], "urb corner"),  # Corrected: u[2], r[2], b[2]
+        (u_face[6] + l_face[0] + f_face[0], "ulf corner"),  # Corrected: u[6], l[0], f[0]
+        (u_face[8] + r_face[0] + f_face[2], "urf corner"),  # Corrected: u[8], r[0], f[2]
+        (d_face[0] + l_face[6] + f_face[6], "dlf corner"),  # Corrected: d[0], l[6], f[6]
+        (d_face[2] + r_face[6] + f_face[8], "drf corner"),  # Corrected: d[2], r[6], f[8]
+        (d_face[6] + l_face[8] + b_face[8], "dlb corner"),  # Corrected: d[6], l[8], b[8]
+        (d_face[8] + r_face[8] + b_face[6], "drb corner"),  # Corrected: d[8], r[8], b[6]
     ]
-    
+
+    # 12 edges (indices relative to the standard URFDLB orientation)
+    edges = [
+        (u_face[1] + b_face[1], "ub edge"),  # Corrected: u[1], b[1]
+        (u_face[5] + r_face[1], "ur edge"),  # Corrected: u[5], r[1]
+        (u_face[7] + f_face[1], "uf edge"),  # Corrected: u[7], f[1]
+        (u_face[3] + l_face[1], "ul edge"),  # Corrected: u[3], l[1]
+
+        (l_face[5] + f_face[3], "lf edge"),  # Corrected: l[5], f[3]
+        (r_face[3] + f_face[5], "rf edge"),  # Corrected: r[3], f[5]
+        (r_face[5] + b_face[5], "rb edge"),  # Corrected: r[5], b[5]
+        (l_face[3] + b_face[3], "lb edge"),  # Corrected: l[3], b[3]
+
+        (d_face[1] + f_face[7], "df edge"),  # Corrected: d[1], f[7]
+        (d_face[5] + r_face[7], "dr edge"),  # Corrected: d[5], r[7]
+        (d_face[7] + b_face[7], "db edge"),  # Corrected: d[7], b[7]
+        (d_face[3] + l_face[7], "dl edge"),  # Corrected: d[3], l[7]
+    ]
+
+    # Check corners
     for piece_str, label in corners:
         ok, reason = check_piece_validity(piece_str)
         if not ok:
-            return False, f"Invalid {label} corner: {reason}"
-    
-    # 3. Define and Check Edges
-    edges = [
-        (u[1] + b[1], "UB"),
-        (u[3] + l[1], "UL"),
-        (u[5] + r[1], "UR"),
-        (u[7] + f[1], "UF"),
-        (d[1] + f[7], "DF"),
-        (d[3] + l[7], "DL"),
-        (d[5] + r[7], "DR"),
-        (d[7] + b[7], "DB"),
-        (f[3] + l[5], "FL"),
-        (f[5] + r[3], "FR"),
-        (b[3] + r[5], "BR"),
-        (b[5] + l[3], "BL"),
-    ]
-    
+            return (False, f"Invalid {label}: {reason}")
+
+    # Check edges
     for piece_str, label in edges:
         ok, reason = check_piece_validity(piece_str)
         if not ok:
-            return False, f"Invalid {label} edge: {reason}"
-    
-    return True, ""  # All checks passed
+            return (False, f"Invalid {label}: {reason}")
 
-def validate_and_orient(u_str, r_str, f_str, d_str, l_str, b_str):
+    # If all checks pass
+    return (True, None)
+
+def find_valid_orientations(u_str, r_str, f_str, d_str, l_str, b_str):
     """
-    Takes 6 face strings (lowercase colors), checks counts, finds valid orientation.
-    Returns (kociemba_string, None) on success, or (None, error_message) on failure.
+    Takes 6 face strings (lowercase colors), checks counts, finds valid orientations.
+    Returns a list of valid cube state strings in the format expected by Kociemba.
     """
     # Convert input strings to lists
     try:
-        faces_input = {
-            'U': list(u_str), 'R': list(r_str), 'F': list(f_str),
-            'D': list(d_str), 'L': list(l_str), 'B': list(b_str)
-        }
-        if any(len(face) != 9 for face in faces_input.values()):
-            raise ValueError("All faces must have 9 stickers.")
-    except Exception as e:
-        return None, f"Input error: {e}"
-    
-    # 1. Check Color Counts
-    ok, reason = check_color_counts(faces_input.values())
-    if not ok:
-        return None, reason
-    
-    # 2. Brute force check all 4^6 = 4096 orientations
-    all_rotations = [0, 1, 2, 3]
-    for u_rot, r_rot, f_rot, d_rot, l_rot, b_rot in itertools.product(all_rotations, repeat=6):
-        # Rotate faces according to current combination
-        u_rotated = rotate_face(faces_input['U'], u_rot)
-        r_rotated = rotate_face(faces_input['R'], r_rot)
-        f_rotated = rotate_face(faces_input['F'], f_rot)
-        d_rotated = rotate_face(faces_input['D'], d_rot)
-        l_rotated = rotate_face(faces_input['L'], l_rot)
-        b_rotated = rotate_face(faces_input['B'], b_rot)
+        u = list(u_str)
+        r = list(r_str)
+        f = list(f_str)
+        d = list(d_str)
+        l = list(l_str)
+        b = list(b_str)
         
-        # Check if this arrangement is valid
-        valid, reason = is_valid_arrangement(
-            u_rotated, r_rotated, f_rotated, d_rotated, l_rotated, b_rotated
-        )
+        if any(len(face) != 9 for face in [u, r, f, d, l, b]):
+            return [], "All faces must have 9 stickers."
+    except Exception as e:
+        return [], f"Input error: {e}"
+    
+    # Check color counts
+    ok, reason = check_color_counts([u, r, f, d, l, b])
+    if not ok:
+        return [], reason
+    
+    # List to store all valid state strings
+    valid_solutions = []
+    debug_info = []
+    
+    # All possible rotations for each face (0=0°, 1=90°, 2=180°, 3=270° clockwise)
+    all_rotations = [0, 1, 2, 3]
+    
+    # Generate all combinations of rotations (4^6 = 4096)
+    for index, (u_rot, r_rot, f_rot, d_rot, l_rot, b_rot) in enumerate(
+        itertools.product(all_rotations, repeat=6)
+    ):
+        # Rotate each face accordingly
+        u_ = rotate_face(u, u_rot)
+        r_ = rotate_face(r, r_rot)
+        f_ = rotate_face(f, f_rot)
+        d_ = rotate_face(d, d_rot)
+        l_ = rotate_face(l, l_rot)
+        b_ = rotate_face(b, b_rot)
+        
+        # Check arrangement
+        valid, reason = is_valid_arrangement(u_, r_, f_, d_, l_, b_)
+        
+        # Build a record of this attempt
+        attempt_record = {
+            "combination_index": index,
+            "rotations": {
+                "u_rot": u_rot,
+                "r_rot": r_rot,
+                "f_rot": f_rot,
+                "d_rot": d_rot,
+                "l_rot": l_rot,
+                "b_rot": b_rot
+            },
+            "faces_tested": {
+                "u": "".join(u_),
+                "r": "".join(r_),
+                "f": "".join(f_),
+                "d": "".join(d_),
+                "l": "".join(l_),
+                "b": "".join(b_)
+            },
+            "valid": valid,
+        }
         
         if valid:
-            # Found a valid orientation! Construct the Kociemba string (URFDLB order).
-            # Convert lowercase colors to uppercase face chars needed by kociemba.
-            try:
-                kociemba_str = "".join(
-                    COLOR_TO_FACE_CHAR[c] for c in itertools.chain(
-                        u_rotated, r_rotated, f_rotated, d_rotated, l_rotated, b_rotated
-                    )
-                )
-                # Final sanity check on length
-                if len(kociemba_str) != 54:
-                    raise ValueError("Internal error: Generated Kociemba string is not 54 chars.")
-                return kociemba_str, None  # Success
-            except KeyError as e:
-                # This shouldn't happen if color counts/validity were checked
-                return None, f"Internal error: Invalid color character '{e}' during Kociemba string conversion."
-            except Exception as e:
-                return None, f"Internal error: {e}"
+            # If valid, convert to Kociemba format (URFDLB order with uppercase face chars)
+            kociemba_str = ""
+            for c in u_ + r_ + f_ + d_ + l_ + b_:
+                kociemba_str += COLOR_TO_FACE_CHAR[c]
+            
+            attempt_record["kociemba_input"] = kociemba_str
+            attempt_record["reason"] = "Valid orientation"
+            valid_solutions.append(kociemba_str)
+        else:
+            # If invalid, store reason
+            attempt_record["reason"] = reason
+        
+        debug_info.append(attempt_record)
     
-    # If loop finishes, no valid orientation was found
-    return None, "Invalid State: Colors are correct, but no valid orientation found (check edges/corners)."
+    return valid_solutions, debug_info
