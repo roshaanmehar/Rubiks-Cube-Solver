@@ -1,6 +1,6 @@
 Flask
 Flask-Cors
-python-kociemba
+kociemba
 opencv-python-headless
 numpy
 Pillow
