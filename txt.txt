@@ -28,7 +28,7 @@ const hexToColorChar: { [key: string]: string } = {
 }
 
 // Define the standard face order expected by the backend validation input
-const faceInputOrder = ["u", "r", "f", "d", "l", "b"] // Corrected line - removed citation
+const faceInputOrder = ["u", "r", "f", "d", "l", "b"]
 // Define which face array corresponds to which standard face (using White Net as primary)
 const faceArrayMapping: { [key: string]: string } = {
   u: "wW", // White face array maps to Up
@@ -57,14 +57,12 @@ export default function CubeNets() {
     yY: Array(9).fill("#ffff00"), // Yellow, unlinked
   })
 
-   // --- State for API Interaction ---
+  // --- State for API Interaction ---
   const [solutions, setSolutions] = useState<Array<{solution: string, orientation_index: number}>>([])
 const [selectedSolution, setSelectedSolution] = useState<number>(0)
 const [totalOrientations, setTotalOrientations] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(false)
-  // Note: The original code had 'solution' state defined, but the JSX uses 'solutions' array.
-  // Keeping 'solutions' based on the provided JSX updates. Remove the line below if 'solution' is unused.
-  // const [solution, setSolution] = useState<string | null>(null);
+  const [solution, setSolution] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [resultPanelCollapsed, setResultPanelCollapsed] = useState(true) // Collapse state for result panel
 
@@ -76,7 +74,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
         try {
           setFaceArrays(JSON.parse(saved))
         } catch (e) {
-           console.error("Failed to parse saved state:", e)
+          console.error("Failed to parse saved state:", e)
         }
       }
     }
@@ -204,14 +202,14 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
   ]
 
   // Function to get the next color in the cycle
-  const getNextColor = (currentColor: string) => {
+  const getNextColor = (currentColor) => {
     const index = availableColors.indexOf(currentColor)
     if (index === -1) return availableColors[0]
     return availableColors[(index + 1) % availableColors.length]
   }
 
   // Function to cycle color on click
-  const cycleColor = (faceName: string, index: number) => {
+  const cycleColor = (faceName, index) => {
     setFaceArrays((prev) => {
       const newArrays = { ...prev }
       const currentColor = newArrays[faceName][index]
@@ -239,7 +237,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
   }
 
   // Function to rotate a face
-  const rotateFace = (faceName: string) => {
+  const rotateFace = (faceName) => {
     setFaceArrays((prev) => {
       const newArrays = { ...prev }
 
@@ -252,7 +250,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
       arr[1] = old[3]
       arr[2] = old[0]
       arr[3] = old[7]
-      arr[4] = old[4] // Center stays
+      arr[4] = old[4]
       arr[5] = old[1]
       arr[6] = old[8]
       arr[7] = old[5]
@@ -260,7 +258,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
 
       newArrays[faceName] = arr
 
-      // If the face is shared, rotate the other side as well (180 degrees reflection means clockwise rotation is still clockwise visually)
+      // If the face is shared, rotate the other side as well
       if (faceName === "wW" || faceName === "yY") return newArrays
 
       const faceChar = faceName[0] // b/o/r/g
@@ -272,7 +270,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
       const otherArr = [...newArrays[otherFaceName]]
       const otherOld = [...otherArr]
 
-      // Rotate clockwise (same rotation logic applies)
+      // Rotate clockwise
       otherArr[0] = otherOld[6]
       otherArr[1] = otherOld[3]
       otherArr[2] = otherOld[0]
@@ -297,11 +295,6 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
     for (const faceChar of faceInputOrder) {
       // 'u', 'r', 'f', 'd', 'l', 'b'
       const faceArrayKey = faceArrayMapping[faceChar] // e.g., "wW" for 'u'
-      if (!faceArrayKey || !faceArrays[faceArrayKey]) {
-         setError(`Internal Error: Mapping or face array missing for '${faceChar}'.`)
-         conversionError = true
-         break
-      }
       const colorArray = faceArrays[faceArrayKey] // Get the color array (e.g., faceArrays.wW)
 
       if (!colorArray || colorArray.length !== 9) {
@@ -335,17 +328,17 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
     setSolutions([])
     setError(null)
     setResultPanelCollapsed(false) // Ensure result panel is open
-
+  
     const apiPayload = convertStateForApi()
-
+  
     if (!apiPayload) {
       setIsLoading(false)
       // Error state already set by convertStateForApi
       return
     }
-
+  
     console.log("Sending to backend:", apiPayload)
-
+  
     try {
       const response = await fetch(API_URL, {
         method: "POST",
@@ -354,12 +347,12 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
         },
         body: JSON.stringify(apiPayload),
       })
-
+  
       const result = await response.json()
-
+  
       if (response.ok) {
-        setSolutions(result.solutions || []) // Ensure solutions is always an array
-        setTotalOrientations(result.total_valid_orientations || 0)
+        setSolutions(result.solutions)
+        setTotalOrientations(result.total_valid_orientations)
         setSelectedSolution(0) // Select first solution by default
         setError(null) // Clear previous errors
         console.log("Solutions received:", result.solutions)
@@ -376,10 +369,8 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
       setIsLoading(false)
     }
   }
-
-  // Add this function to handle solution selection
   const handleSolutionChange = (index: number) => {
-   setSelectedSolution(index)
+    setSelectedSolution(index)
   }
 
   // State for info modal
@@ -395,12 +386,12 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
 
   // State for fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null) // Added type annotation
+  const containerRef = useRef(null)
 
   // Function to toggle fullscreen
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch((err) => { // Added optional chaining
+      containerRef.current.requestFullscreen().catch((err) => {
         console.error(`Error attempting to enable fullscreen: ${err.message}`)
       })
     } else {
@@ -440,8 +431,8 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
   // Function to format solution for better readability
   const formatSolution = (solution: string) => {
     if (!solution) return ""
-    // Split the solution into individual moves - ensuring space separation
-    return solution.match(/([A-Z][2']?)/g)?.join(" ") || solution;
+    // Split the solution into individual moves
+    return solution.split(" ").join(" ")
   }
 
   return (
@@ -628,31 +619,12 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
                     </div>
                   </div>
                 )}
-                {/* Updated results display area */}
-                {solutions.length > 0 && (
+                {solution && (
                   <div className="result-message success">
                     <Check size={20} />
                     <div>
-                      <strong>Solutions Found: {solutions.length} (out of {totalOrientations} valid orientations)</strong>
-                      
-                      {solutions.length > 1 && (
-                        <div className="solution-selector">
-                          <label htmlFor="solution-select">Select solution:</label>
-                          <select
-                            id="solution-select"
-                            value={selectedSolution}
-                            onChange={(e) => handleSolutionChange(parseInt(e.target.value))}
-                          >
-                            {solutions.map((sol, idx) => (
-                              <option key={idx} value={idx}>
-                                Solution {idx + 1} (Orientation {sol.orientation_index + 1})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                      
-                      <p className="solution-text">{formatSolution(solutions[selectedSolution]?.solution || "")}</p>
+                      <strong>Solution Found:</strong>
+                      <p className="solution-text">{formatSolution(solution)}</p>
                       <div className="solution-help">
                         <p>
                           <strong>Notation:</strong> F (Front), B (Back), U (Up), D (Down), L (Left), R (Right)
@@ -663,16 +635,6 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
                       </div>
                     </div>
                   </div>
-                )}
-                 {/* Display message if loading succeeded but no solutions found */}
-                {!isLoading && !error && solutions.length === 0 && totalOrientations > 0 && (
-                    <div className="result-message info">
-                        <Info size={20} />
-                        <div>
-                            <strong>No Solutions Found</strong>
-                            <p>The solver checked {totalOrientations} valid orientations but could not find a solution for this specific configuration. It might be an impossible state.</p>
-                        </div>
-                    </div>
                 )}
               </div>
             </>
@@ -692,49 +654,47 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
             </div>
             <div className="modal-body">
               <ul>
-                 <li>
-                  <strong>Click on any sticker</strong> (except center pieces) to cycle through colors (Red → Orange → White → Yellow → Green →
-                  Blue).
+                <li>
+                  <strong>Click on any sticker</strong> to cycle through colors (Red → Orange → White → Yellow → Green →
+                  Blue)
                 </li>
                 <li>
-                  <strong>Faces B/O/R/G</strong> are <em>shared</em> across both nets.
-                   If you recolor index i on one
+                  <strong>Faces B/O/R/G</strong> are <em>shared</em> across both nets. If you recolor index i on one
                   net, index (8−i) on the other net gets that color (180° reflection).
-                 </li>
+                </li>
                 <li>
                   <strong>Faces W and Y</strong> are <em>unlinked</em> (White net only, Yellow net only).
-                 </li>
+                </li>
                 <li>
-                  <strong>Rotation buttons</strong> affect the visual orientation of stickers on that specific net face. Shared faces (B/O/R/G) rotate together on both nets.
-                 </li>
+                  <strong>Rotation buttons</strong> only affect local orientation. B on White can differ from B on
+                  Yellow.
+                </li>
                 <li>
-                  Your changes are <strong>automatically saved</strong> locally and will persist when you refresh the page.
-                 </li>
+                  Your changes are <strong>automatically saved</strong> and will persist when you refresh the page.
+                </li>
                 <li>
-                  Use the <strong>zoom controls</strong> or pinch-to-zoom to adjust the size of the nets.
-                 </li>
+                  Use the <strong>zoom controls</strong> to adjust the size of the nets.
+                </li>
                 <li>
-                  Click the section headers (e.g., "White-Center Layout") to <strong>collapse/expand</strong> panels.
-                 </li>
+                  Click the section headers to <strong>collapse/expand</strong> different parts of the interface.
+                </li>
                 <li>
                   Use the <strong>fullscreen button</strong> to maximize your workspace.
-                 </li>
+                </li>
                 <li>
-                  Use the <strong>Solve Cube</strong> panel to validate your cube state and get a solution sequence.
-                 </li>
+                  Use the <strong>Solve Cube</strong> panel to validate your cube state and get a solution.
+                </li>
               </ul>
 
               <h4>Solving the Cube</h4>
               <p>
-                The solver validates the input and attempts to find a solution using an efficient algorithm.
-                 Make sure your cube
-                state is valid (correct number/type of pieces) before solving.
-               </p>
+                The solver uses the Kociemba algorithm to find an efficient solution for your cube. Make sure your cube
+                state is valid (correct number of each color, valid edge and corner pieces) before solving.
+              </p>
               <p>
-                <strong>Note:</strong> The backend server must be running at {API_URL} for the solver to work.
-                 If you
-                encounter connection errors, please ensure the server is active.
-               </p>
+                <strong>Note:</strong> The backend server must be running at {API_URL} for the solver to work. If you
+                encounter connection errors, make sure the Flask server is running.
+              </p>
             </div>
           </div>
         </div>
@@ -743,7 +703,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
       <style jsx>{`
         .cube-nets-container {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-           max-width: 100%;
+          max-width: 100%;
           margin: 0 auto;
           padding: 10px;
           background-color: #f8f9fa;
@@ -754,7 +714,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
 
         header {
           display: flex;
-           justify-content: space-between;
+          justify-content: space-between;
           align-items: center;
           margin-bottom: 20px;
           padding-bottom: 10px;
@@ -763,20 +723,20 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
 
         .header-controls {
           display: flex;
-           gap: 10px;
+          gap: 10px;
           align-items: center;
         }
 
         .zoom-controls {
           display: flex;
-           align-items: center;
+          align-items: center;
           gap: 5px;
           margin-right: 5px;
         }
 
         .control-button {
           background: none;
-           border: 1px solid #dee2e6;
+          border: 1px solid #dee2e6;
           color: #495057;
           cursor: pointer;
           padding: 5px 8px;
@@ -784,45 +744,43 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
           display: flex;
           align-items: center;
           justify-content: center;
-           transition: background-color 0.2s, color 0.2s;
+          transition: background-color 0.2s, color 0.2s;
         }
 
         .control-button:hover {
           background-color: #e9ecef;
-           color: #212529;
+          color: #212529;
         }
 
         h1 {
           font-size: min(2rem, 5vw);
-           color: #212529;
+          color: #212529;
           margin: 0;
-          flex-grow: 1; /* Allow title to take space */
-          text-align: left; /* Align title left */
         }
 
         h2 {
           font-size: min(1.5rem, 4vw);
-           color: #343a40;
+          color: #343a40;
           margin: 0;
         }
 
         h3 {
           font-size: min(1.2rem, 3.5vw);
-           color: #495057;
+          color: #495057;
           margin-top: 0;
           margin-bottom: 10px;
         }
 
         h4 {
           font-size: min(1.1rem, 3.2vw);
-           color: #495057;
+          color: #495057;
           margin-top: 15px;
           margin-bottom: 8px;
         }
 
         .nets {
           display: flex;
-           gap: 20px;
+          gap: 20px;
           justify-content: center;
           flex-wrap: wrap;
           margin-bottom: 20px;
@@ -830,18 +788,17 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
 
         .net-container {
           background-color: white;
-           border-radius: 12px;
+          border-radius: 12px;
           padding: 15px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          transition: box-shadow 0.2s;
+          transition: transform 0.2s;
           width: 100%;
           max-width: 600px;
-           flex-shrink: 0; /* Prevent shrinking on flex wrap */
         }
 
         .net-header, .panel-header {
           display: flex;
-           justify-content: space-between;
+          justify-content: space-between;
           align-items: center;
           cursor: pointer;
           padding-bottom: 10px;
@@ -849,7 +806,7 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
 
         .collapse-button {
           background: none;
-           border: none;
+          border: none;
           color: #6c757d;
           cursor: pointer;
           padding: 5px;
@@ -857,131 +814,100 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-           transition: background-color 0.2s, color 0.2s;
+          transition: background-color 0.2s, color 0.2s;
         }
 
         .collapse-button:hover {
           background-color: #e9ecef;
-           color: #212529;
+          color: #212529;
         }
 
         .grid9x9 {
           display: grid;
-           grid-template-columns: repeat(9, min(40px, 4vw));
+          grid-template-columns: repeat(9, min(40px, 4vw));
           grid-template-rows: repeat(9, min(40px, 4vw));
           gap: 1px;
           transform-origin: top left;
-          margin: 0 auto; /* Center grid */
-          width: fit-content; /* Size grid to content */
+          margin: 0 auto;
         }
 
         .cell {
           width: min(40px, 4vw);
-           height: min(40px, 4vw);
+          height: min(40px, 4vw);
           border: 1px solid rgba(0, 0, 0, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
           position: relative;
           border-radius: 4px;
-           transition: transform 0.15s, box-shadow 0.15s;
+          transition: transform 0.15s, box-shadow 0.15s;
           cursor: pointer;
         }
 
         .cell:not(.empty):not(.center):hover {
           transform: scale(1.05);
-           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
           z-index: 1;
         }
 
         .cell.empty {
-          background-color: transparent !important; /* Ensure empty cells are transparent */
           border: none;
-           cursor: default;
-           box-shadow: none;
+          cursor: default;
         }
 
         .cell.center {
           cursor: default;
-           border: 2px solid rgba(0, 0, 0, 0.4);
-        }
-        .cell.center:hover {
-            transform: none; /* No hover effect for center */
-            box-shadow: none;
-            z-index: 0;
+          border: 2px solid rgba(0, 0, 0, 0.4);
         }
 
         .cell-index {
           position: absolute;
-           bottom: 2px;
+          bottom: 2px;
           right: 2px;
           font-size: 10px;
           color: rgba(0, 0, 0, 0.5);
           pointer-events: none;
-           background-color: rgba(255, 255, 255, 0.7); /* Make index slightly more visible */
-           padding: 0 2px;
-           border-radius: 2px;
         }
-         /* Hide index on very small cells */
-        @media (max-width: 400px) {
-            .cell-index {
-                display: none;
-            }
-            .grid9x9 {
-                 grid-template-columns: repeat(9, min(30px, 7vw));
-                 grid-template-rows: repeat(9, min(30px, 7vw));
-            }
-             .cell {
-                width: min(30px, 7vw);
-                height: min(30px, 7vw);
-             }
-        }
-
 
         .controls {
           display: flex;
-           flex-direction: column;
+          flex-direction: column;
           justify-content: center;
-          align-items: center; /* Center control panels */
           margin-top: 10px;
           flex-grow: 1;
           gap: 20px;
-           width: 100%; /* Ensure controls take full width */
         }
 
         .control-panel {
           background-color: white;
-           border-radius: 12px;
+          border-radius: 12px;
           padding: 15px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          max-width: 1220px; /* Max width matching nets combined approx */
-          width: 100%; /* Take full available width */
-           box-sizing: border-box; /* Include padding in width */
+          max-width: 100%;
+          width: 100%;
         }
 
         .rotation-controls {
           display: flex;
-           flex-wrap: wrap;
+          flex-wrap: wrap;
           gap: 20px;
           justify-content: space-around;
-          margin-top: 10px; /* Add space above buttons */
         }
 
         .rotation-section {
           flex: 1;
-           min-width: 200px;
-           margin-bottom: 10px; /* Space below sections when wrapping */
+          min-width: 200px;
         }
 
         .buttons {
           display: grid;
-           grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
           gap: 8px;
         }
 
         .rotate-button {
           display: flex;
-           align-items: center;
+          align-items: center;
           justify-content: center;
           gap: 6px;
           padding: 8px 12px;
@@ -989,72 +915,89 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
-           transition: transform 0.15s, opacity 0.15s;
+          transition: transform 0.15s, opacity 0.15s;
           color: white;
           text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
 
         .rotate-button:hover {
           transform: translateY(-2px);
-           opacity: 0.9;
+          opacity: 0.9;
         }
 
         .rotate-button:active {
           transform: translateY(0);
-           opacity: 1;
         }
 
-        .rotate-button.blue { background-color: #0000ff; }
-        .rotate-button.orange { background-color: #ffa500; }
-        .rotate-button.red { background-color: #ff0000; }
-        .rotate-button.green { background-color: #00cc00; color: #212529; text-shadow: none; } /* Adjusted green slightly */
-        .rotate-button.white { background-color: #ffffff; color: #212529; text-shadow: none; border: 1px solid #dee2e6; }
-        .rotate-button.yellow { background-color: #ffff00; color: #212529; text-shadow: none; border: 1px solid #ccc; } /* Added border */
+        .rotate-button.blue {
+          background-color: #0000ff;
+        }
+
+        .rotate-button.orange {
+          background-color: #ffa500;
+        }
+
+        .rotate-button.red {
+          background-color: #ff0000;
+        }
+
+        .rotate-button.green {
+          background-color: #00ff00;
+          color: #212529;
+          text-shadow: none;
+        }
+
+        .rotate-button.white {
+          background-color: #ffffff;
+          color: #212529;
+          text-shadow: none;
+          border: 1px solid #dee2e6;
+        }
+
+        .rotate-button.yellow {
+          background-color: #ffff00;
+          color: #212529;
+          text-shadow: none;
+        }
 
         /* Modal */
         .modal {
           position: fixed;
-           top: 0;
+          top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+          background-color: rgba(0, 0, 0, 0.5);
           display: flex;
           justify-content: center;
           align-items: center;
-           z-index: 1000;
-           padding: 20px; /* Add padding for smaller screens */
-           box-sizing: border-box;
+          z-index: 1000;
         }
 
         .modal-content {
           background: white;
-           border-radius: 12px;
-          width: 100%; /* Use full width within padding */
+          border-radius: 12px;
+          width: 90%;
           max-width: 600px;
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-          display: flex; /* Use flex for layout */
-          flex-direction: column; /* Stack header, body */
-           max-height: 90vh; /* Limit height */
+          overflow: hidden;
         }
 
         .modal-header {
           display: flex;
-           justify-content: space-between;
+          justify-content: space-between;
           align-items: center;
           padding: 15px 20px;
           border-bottom: 1px solid #e9ecef;
-           flex-shrink: 0; /* Prevent header shrinking */
         }
 
         .modal-header h3 {
           margin: 0;
-           font-size: 1.3rem;
         }
 
         .close-button {
           background: none;
-           border: none;
+          border: none;
           color: #6c757d;
           cursor: pointer;
           padding: 5px;
@@ -1062,41 +1005,33 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
           align-items: center;
           justify-content: center;
           border-radius: 50%;
-           transition: background-color 0.2s, color 0.2s;
+          transition: background-color 0.2s, color 0.2s;
         }
 
         .close-button:hover {
           background-color: #e9ecef;
-           color: #212529;
+          color: #212529;
         }
 
         .modal-body {
           padding: 20px;
-           overflow-y: auto; /* Enable scrolling for content */
-           flex-grow: 1; /* Allow body to take remaining space */
+          max-height: 70vh;
+          overflow-y: auto;
         }
 
         .modal-body ul {
           padding-left: 20px;
-           line-height: 1.7; /* Increased line height */
-           margin: 0;
+          line-height: 1.6;
         }
 
         .modal-body li {
-          margin-bottom: 14px; /* Increased spacing */
+          margin-bottom: 12px;
         }
-         .modal-body p {
-             line-height: 1.6;
-             margin-bottom: 10px;
-         }
-          .modal-body strong {
-              color: #343a40;
-          }
 
         /* Solver styles */
         .solve-button {
           display: flex;
-           align-items: center;
+          align-items: center;
           justify-content: center;
           gap: 8px;
           padding: 10px 15px;
@@ -1105,27 +1040,20 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
           border: none;
           border-radius: 6px;
           font-weight: 600;
-           cursor: pointer;
-          transition: background-color 0.2s, transform 0.1s;
-          margin: 15px auto 10px auto; /* Adjusted margin */
+          cursor: pointer;
+          transition: background-color 0.2s;
+          margin: 15px auto;
           width: 100%;
           max-width: 300px;
-           box-sizing: border-box;
         }
 
         .solve-button:hover {
           background-color: #0069d9;
-           transform: scale(1.02);
         }
-         .solve-button:active {
-             transform: scale(1);
-         }
 
         .solve-button:disabled {
           background-color: #6c757d;
-           cursor: not-allowed;
-           transform: none;
-           opacity: 0.7;
+          cursor: not-allowed;
         }
 
         .animate-spin {
@@ -1139,144 +1067,122 @@ const [totalOrientations, setTotalOrientations] = useState<number>(0)
 
         .results-area {
           margin-top: 15px;
-           padding-top: 15px;
+          padding-top: 15px;
           border-top: 1px solid #e9ecef;
         }
 
         .result-message {
           display: flex;
-           align-items: flex-start;
+          align-items: flex-start;
           gap: 10px;
           padding: 15px;
           border-radius: 8px;
           margin-bottom: 10px;
-           line-height: 1.5;
         }
-         .result-message > svg { /* Style icon */
-             margin-top: 3px;
-             flex-shrink: 0;
-         }
 
-        .result-message.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .result-message.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .result-message.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; } /* Added info style */
-
-
-        .solution-selector {
-            margin-top: 10px;
-            margin-bottom: 10px;
+        .result-message.error {
+          background-color: #f8d7da;
+          color: #721c24;
+          border: 1px solid #f5c6cb;
         }
-        .solution-selector label {
-            margin-right: 8px;
-            font-weight: 500;
+
+        .result-message.success {
+          background-color: #d4edda;
+          color: #155724;
+          border: 1px solid #c3e6cb;
         }
-         .solution-selector select {
-             padding: 5px 8px;
-             border-radius: 4px;
-             border: 1px solid #ced4da;
-             font-size: 0.95rem;
-         }
 
         .solution-text {
-          font-family: 'Courier New', Courier, monospace; /* Monospace font */
-           font-size: 1rem; /* Slightly larger */
-          background-color: rgba(0, 0, 0, 0.05); /* Subtle background */
-          padding: 8px 12px; /* More padding */
+          font-family: monospace;
+          font-size: 0.95rem;
+          background-color: rgba(255, 255, 255, 0.5);
+          padding: 5px 8px;
           border-radius: 4px;
-          display: block; /* Block display for wrapping */
+          display: inline-block;
           max-width: 100%;
-          overflow-x: auto; /* Scroll if needed */
-           white-space: normal; /* Allow wrapping */
-           word-break: break-word; /* Break long words if necessary */
-           line-height: 1.6;
-           margin-top: 5px;
+          overflow-x: auto;
+          word-break: break-all;
         }
 
         .solution-help {
           margin-top: 10px;
-           padding-top: 10px;
-          border-top: 1px dashed rgba(0, 0, 0, 0.2); /* Dashed border */
+          padding-top: 10px;
+          border-top: 1px dashed #c3e6cb;
           font-size: 0.9rem;
-           color: inherit; /* Inherit color from parent message */
-           opacity: 0.9;
         }
 
         .solution-help p {
           margin: 5px 0;
         }
-         .solution-help strong {
-             font-weight: 600;
-         }
 
         /* Responsive adjustments */
-        @media (max-width: 1250px) { /* Adjust breakpoint for nets */
-            .nets {
-                flex-direction: column; /* Stack nets vertically */
-                align-items: center; /* Center stacked nets */
-            }
-            .net-container {
-                max-width: 600px; /* Allow full width when stacked */
-            }
-             .control-panel {
-                 max-width: 600px; /* Match net width */
-             }
-        }
-
-
         @media (max-width: 768px) {
-          h1 { font-size: 1.6rem; }
-          h2 { font-size: 1.3rem; }
-          .header-controls { gap: 8px; }
-          .control-button { padding: 4px 6px; }
-          .zoom-controls { gap: 3px; }
-
-          /* Grid adjustments already handled by min/vw */
-
+          .nets {
+            gap: 15px;
+          }
+          
+          .grid9x9 {
+            grid-template-columns: repeat(9, min(35px, 8vw));
+            grid-template-rows: repeat(9, min(35px, 8vw));
+          }
+          
+          .cell {
+            width: min(35px, 8vw);
+            height: min(35px, 8vw);
+          }
+          
           .rotation-controls {
             flex-direction: column;
             gap: 15px;
           }
-           .buttons {
-               grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); /* Smaller buttons */
-               gap: 6px;
-           }
-            .rotate-button {
-                padding: 6px 10px;
-                font-size: 0.9rem;
-            }
-             .solve-button {
-                 padding: 9px 12px;
-                 max-width: 250px;
-             }
         }
 
-        /* Laptop screen optimization - combines previous media query */
+        /* Laptop screen optimization */
         @media (max-height: 800px) {
-          .cube-nets-container { padding: 8px; }
-          header { margin-bottom: 10px; padding-bottom: 8px; }
-          .nets { margin-bottom: 10px; }
-          .net-container, .control-panel { padding: 10px; }
-          p { margin: 8px 0; font-size: 0.9rem; }
-          h1 { font-size: 1.4rem; }
-          h2 { font-size: 1.2rem; }
-          h3 { font-size: 1rem; margin-bottom: 8px; }
-          .result-message { padding: 12px; }
-          .solution-text { font-size: 0.9rem; padding: 6px 10px; }
-          .solution-help { font-size: 0.85rem; }
+          .cube-nets-container {
+            padding: 8px;
+          }
+          
+          header {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+          }
+          
+          .nets {
+            margin-bottom: 10px;
+          }
+          
+          .net-container, .control-panel {
+            padding: 10px;
+          }
+          
+          p {
+            margin: 8px 0;
+            font-size: 0.9rem;
+          }
+          
+          h1 {
+            font-size: 1.4rem;
+          }
+          
+          h2 {
+            font-size: 1.2rem;
+          }
+          
+          h3 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+          }
         }
-
+        
         /* Fullscreen optimizations */
         :fullscreen .cube-nets-container {
           padding: 20px;
-           overflow-y: auto; /* Ensure scrollability in fullscreen */
         }
+        
         :fullscreen .nets {
           gap: 30px;
         }
-        :fullscreen .modal-content {
-            max-height: 85vh; /* Allow slightly more height in fullscreen */
-        }
-
       `}</style>
     </div>
   )
