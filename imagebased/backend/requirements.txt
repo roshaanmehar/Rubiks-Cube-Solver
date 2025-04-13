@@ -1,0 +1,6 @@
+Flask
+Flask-Cors
+python-kociemba
+opencv-python-headless
+numpy
+Pillow
