@@ -52,7 +52,6 @@ This project is a comprehensive Rubik's Cube solver system that provides multipl
 
 ## Architecture Diagram
 
-![Architecture Diagram Placeholder](screenshots/architecture-diagram.png)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -878,7 +877,7 @@ Standard Rubik's Cube notation:
 
 ### 1. 2D Cube Nets App
 
-![2D Cube Nets Screenshot Placeholder](screenshots/cube-nets-app.png)
+![2D Cube Nets Screenshot Placeholder](https://github.com/roshaanmehar/Rubiks-Cube-Solver/blob/main/Screenshot%202026-01-28%20095712.png)
 
 **Prerequisites**:
 - Node.js 18+
@@ -907,7 +906,6 @@ npm run dev
 
 ### 2. 3D Rubik's Cube Visualizer
 
-![3D Visualizer Screenshot Placeholder](screenshots/3d-visualizer.png)
 
 **Prerequisites**:
 - Node.js 18+
@@ -927,7 +925,7 @@ npm run dev
 
 ### 3. Image-Based Solver
 
-![Image Solver Screenshot Placeholder](screenshots/image-solver.png)
+![Image Solver Screenshot Placeholder](https://github.com/roshaanmehar/Rubiks-Cube-Solver/blob/main/Screenshot%202026-01-28%20100505.png)
 
 **Prerequisites**:
 - Node.js 18+
@@ -956,9 +954,7 @@ npm run dev
 
 ### 4. Standalone 2D/3D HTML Visualizers
 
-![2D HTML Visualizer Screenshot Placeholder](screenshots/2d-html-visualizer.png)
 
-![3D HTML Visualizer Screenshot Placeholder](screenshots/3d-html-visualizer.png)
 
 **Prerequisites**:
 - Modern web browser
@@ -1042,64 +1038,7 @@ node matman.js
 
 ---
 
-## Screenshots
 
-Replace these placeholders with actual screenshots after running each application:
-
-### Architecture Diagram
-![Architecture Diagram](screenshots/architecture-diagram.png)
-*System architecture showing data flow between components*
-
-### 2D Cube Nets App
-![2D Cube Nets App](screenshots/cube-nets-app.png)
-*Main interface showing white-centered and yellow-centered cube nets*
-
-### 3D Rubik's Cube Visualizer
-![3D Visualizer](screenshots/3d-visualizer.png)
-*Interactive 3D cube with rotation controls*
-
-### Image-Based Solver
-![Image Solver](screenshots/image-solver.png)
-*Upload interface for cube face images*
-
-### 2D HTML Visualizer
-![2D HTML](screenshots/2d-html-visualizer.png)
-*Standalone HTML/JS cube net viewer*
-
-### 3D HTML Visualizer
-![3D HTML](screenshots/3d-html-visualizer.png)
-*Standalone Three.js cube viewer*
-
-### Color Detection Output
-![Color Detection](screenshots/color-detection.png)
-*Sample output from color.py showing detected stickers*
-
-### Solution Output
-![Solution](screenshots/solution-output.png)
-*Example solution display with move notation*
-
----
-
-## Creating Screenshots
-
-To populate the screenshots folder:
-
-1. Create a `screenshots/` folder in the project root:
-   ```bash
-   mkdir screenshots
-   ```
-
-2. For each application:
-   - Start the application following the instructions above
-   - Open in browser (or run in terminal for scripts)
-   - Take screenshot (Windows: Win+Shift+S, Mac: Cmd+Shift+4)
-   - Save to `screenshots/` with the corresponding filename
-
-3. For architecture diagram:
-   - Use a tool like draw.io, Mermaid, or Excalidraw
-   - Export as PNG to `screenshots/architecture-diagram.png`
-
----
 
 ## Appendix: File Summary Table
 
